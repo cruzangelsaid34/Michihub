@@ -283,12 +283,43 @@ nav.menu-principal a.activo{
 
 <div id="resultado-id">Introduce un nombre</div>
 
-<button onclick="crearCredencial()" style="margin-top:15px;width:100%;padding:12px;border:none;border-radius:10px;background:#b09e8d;color:white;cursor:pointer;font-weight:bold;">
+<button onclick="mostrarFormularioCredencial()" style="margin-top:15px;width:100%;padding:12px;border:none;border-radius:10px;background:#b09e8d;color:white;cursor:pointer;font-weight:bold;">
 Crear Credencial
 </button>
 
 <span class="link-recuperar" onclick="recuperarCodigo()">¿Olvidaste tu código de acceso?</span>
 
+</div>
+
+<!-- Modal para crear credencial con más campos -->
+<div id="modal-crear-credencial" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);flex-direction:column;align-items:center;justify-content:center;z-index:8000;padding:20px;">
+<div style="background:var(--card-bg);border-radius:20px;padding:30px;max-width:500px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 25px var(--shadow);">
+<h2 style="font-family:'Playfair Display',serif;margin-bottom:20px;text-align:center;">Nueva Credencial</h2>
+
+<label style="display:block;margin-bottom:15px;">
+  <span style="font-weight:bold;display:block;margin-bottom:5px;">Nombre de usuario</span>
+  <input type="text" id="campo-nombre" placeholder="Ej: MichiMaster" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;box-sizing:border-box;">
+</label>
+
+<label style="display:block;margin-bottom:15px;">
+  <span style="font-weight:bold;display:block;margin-bottom:5px;">📸 Foto de perfil (opcional)</span>
+  <input type="file" id="campo-foto" accept="image/*" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ccc;box-sizing:border-box;">
+  <small style="display:block;color:#666;margin-top:5px;">O ingresa una URL:</small>
+  <input type="text" id="campo-foto-url" placeholder="https://..." style="width:100%;padding:8px;border-radius:8px;border:1px solid #ccc;box-sizing:border-box;margin-top:5px;">
+  <div id="preview-foto" style="margin-top:10px;"></div>
+</label>
+
+<label style="display:block;margin-bottom:15px;">
+  <span style="font-weight:bold;display:block;margin-bottom:5px;">📍 Ubicación</span>
+  <button type="button" id="btn-obtener-ubicacion" onclick="obtenerUbicacionUsuario()" style="width:100%;padding:10px;border-radius:8px;border:none;background:#b09e8d;color:white;cursor:pointer;font-weight:bold;">Detectar ubicación</button>
+  <input type="text" id="campo-ubicacion" placeholder="O escribe tu ubicación" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;box-sizing:border-box;margin-top:10px;">
+</label>
+
+<div style="display:flex;gap:10px;margin-top:20px;">
+  <button onclick="confirmarCrearCredencial()" style="flex:1;padding:12px;border:none;border-radius:10px;background:#b09e8d;color:white;cursor:pointer;font-weight:bold;">Crear</button>
+  <button onclick="cerrarModalCredencial()" style="flex:1;padding:12px;border:none;border-radius:10px;background:#999;color:white;cursor:pointer;">Cancelar</button>
+</div>
+</div>
 </div>
 
 <div class="card">
@@ -518,7 +549,8 @@ function mostrarResultadoCredencial(nombre, data, mensajeExtra){
     resultado.innerHTML = `
         <img src="${data.img}" class="id-image">
         <p>Código: <b>${data.codigo}</b></p>
-        ${data.fecha ? `<p>Creado: ${data.fecha}${data.hora ? " - " + data.hora : ""}</p>` : ""}
+        ${data.fecha ? `<p>📅 Creado: ${data.fecha}${data.hora ? " - " + data.hora : ""}</p>` : ""}
+        ${data.ubicacion ? `<p>📍 Ubicación: ${data.ubicacion}</p>` : ""}
         ${data.expiracion ? `<p>Válido hasta: <b>${data.expiracion}</b></p>` : ""}
         ${mensajeExtra ? `<p>${mensajeExtra}</p>` : ""}
         <div class="credencial-acciones">
@@ -556,7 +588,7 @@ function validarCodigoAcceso(){
     return true;
 }
 
-/* REGENERAR (mantiene el código de la credencial y el código de acceso, solo renueva imagen y fecha) */
+/* REGENERAR (mantiene código, foto, ubicación; solo renueva imagen y fecha) */
 async function regenerarCredencialUI(nombre){
     let rawData = localStorage.getItem("credencial_" + nombre);
     if(!rawData){
@@ -570,8 +602,17 @@ async function regenerarCredencialUI(nombre){
     let hora = new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
     let { expiracion, expiracionISO } = calcularExpiracion();
 
-    let img = await generarImagenCredencial(nombre, data.codigo, fecha, hora, expiracion);
-    let nuevaData = { img: img, codigo: data.codigo, fecha: fecha, hora: hora, expiracion: expiracion, expiracionISO: expiracionISO };
+    let img = await generarImagenCredencial(nombre, data.codigo, fecha, hora, expiracion, data.fotoURL, data.ubicacion);
+    let nuevaData = { 
+        img: img, 
+        codigo: data.codigo, 
+        fecha: fecha, 
+        hora: hora, 
+        expiracion: expiracion, 
+        expiracionISO: expiracionISO,
+        ubicacion: data.ubicacion,
+        fotoURL: data.fotoURL
+    };
 
     localStorage.setItem("credencial_" + nombre, JSON.stringify(nuevaData));
     mostrarResultadoCredencial(nombre, nuevaData, "Credencial regenerada ✅");
@@ -695,9 +736,88 @@ async function obtenerGatoAleatorio(){
     return data[0].url;
 }
 
-async function crearCredencial(){
-    let nombre = prompt("Nombre de usuario para la credencial:");
-    if(!nombre) return;
+function mostrarFormularioCredencial(){
+    document.getElementById("modal-crear-credencial").style.display = "flex";
+    document.getElementById("campo-nombre").focus();
+}
+
+function cerrarModalCredencial(){
+    document.getElementById("modal-crear-credencial").style.display = "none";
+    document.getElementById("campo-nombre").value = "";
+    document.getElementById("campo-foto").value = "";
+    document.getElementById("campo-foto-url").value = "";
+    document.getElementById("campo-ubicacion").value = "";
+    document.getElementById("preview-foto").innerHTML = "";
+}
+
+// Preview de foto
+document.addEventListener("DOMContentLoaded", () => {
+    let campFoto = document.getElementById("campo-foto");
+    let campFotoUrl = document.getElementById("campo-foto-url");
+    let preview = document.getElementById("preview-foto");
+    
+    if(campFoto) campFoto.addEventListener("change", (e) => {
+        if(e.target.files && e.target.files[0]){
+            let reader = new FileReader();
+            reader.onload = (evt) => {
+                preview.innerHTML = `<img src="${evt.target.result}" style="max-width:150px;max-height:150px;border-radius:8px;margin-top:10px;">`;
+                campFotoUrl.value = "";
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    });
+
+    if(campFotoUrl) campFotoUrl.addEventListener("input", (e) => {
+        if(e.target.value){
+            preview.innerHTML = `<img src="${e.target.value}" style="max-width:150px;max-height:150px;border-radius:8px;margin-top:10px;onerror=this.src=''" onload="">`;
+            campFoto.value = "";
+        }else{
+            preview.innerHTML = "";
+        }
+    });
+});
+
+function obtenerUbicacionUsuario(){
+    let btn = document.getElementById("btn-obtener-ubicacion");
+    btn.disabled = true;
+    btn.innerText = "Detectando...";
+    
+    if(!navigator.geolocation){
+        alert("Tu navegador no soporta geolocalización.");
+        btn.disabled = false;
+        btn.innerText = "Detectar ubicación";
+        return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            let lat = position.coords.latitude.toFixed(4);
+            let lng = position.coords.longitude.toFixed(4);
+            document.getElementById("campo-ubicacion").value = `${lat}, ${lng}`;
+            btn.disabled = false;
+            btn.innerText = "✓ Ubicación detectada";
+            setTimeout(() => {
+                btn.innerText = "Detectar ubicación";
+            }, 2000);
+        },
+        (error) => {
+            alert("No se pudo obtener la ubicación. Puedes escribirla manualmente.");
+            btn.disabled = false;
+            btn.innerText = "Detectar ubicación";
+        }
+    );
+}
+
+async function confirmarCrearCredencial(){
+    let nombre = document.getElementById("campo-nombre").value.trim();
+    let fotoFile = document.getElementById("campo-foto").files[0];
+    let fotoUrl = document.getElementById("campo-foto-url").value.trim();
+    let ubicacion = document.getElementById("campo-ubicacion").value.trim();
+    
+    if(!nombre){
+        alert("Ingresa un nombre de usuario.");
+        return;
+    }
 
     let codigoGuardado = localStorage.getItem("codigoAcceso");
     let esPrimeraVez = !codigoGuardado;
@@ -705,7 +825,7 @@ async function crearCredencial(){
     if(codigoGuardado){
         let ingreso = prompt("Ingresa tu código de acceso existente:");
         if(ingreso !== codigoGuardado){
-            alert("Código incorrecto, contacta al administrador.");
+            alert("Código incorrecto.");
             return;
         }
     }
@@ -721,7 +841,19 @@ async function crearCredencial(){
     let hora = new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
     let { expiracion, expiracionISO } = calcularExpiracion();
 
-    let img = await generarImagenCredencial(nombre, codigo, fecha, hora, expiracion);
+    // Procesar foto
+    let fotoFinal = null;
+    if(fotoFile){
+        fotoFinal = await new Promise((resolve) => {
+            let reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.readAsDataURL(fotoFile);
+        });
+    }else if(fotoUrl){
+        fotoFinal = fotoUrl;
+    }
+
+    let img = await generarImagenCredencial(nombre, codigo, fecha, hora, expiracion, fotoFinal, ubicacion);
 
     localStorage.setItem("credencial_" + nombre, JSON.stringify({
         img: img,
@@ -729,86 +861,141 @@ async function crearCredencial(){
         fecha: fecha,
         hora: hora,
         expiracion: expiracion,
-        expiracionISO: expiracionISO
+        expiracionISO: expiracionISO,
+        ubicacion: ubicacion,
+        fotoURL: fotoFinal
     }));
 
-    mostrarResultadoCredencial(nombre, { img: img, codigo: codigo, fecha: fecha, hora: hora, expiracion: expiracion, expiracionISO: expiracionISO }, `¡Gracias por unirte a MichiHub, ${nombre}! 🐾`);
+    cerrarModalCredencial();
+    mostrarResultadoCredencial(nombre, { img: img, codigo: codigo, fecha: fecha, hora: hora, expiracion: expiracion, expiracionISO: expiracionISO, ubicacion: ubicacion }, `¡Gracias por unirte a MichiHub, ${nombre}! 🐾`);
 }
 
-/* GENERA LA IMAGEN (CANVAS) DE UNA CREDENCIAL, SIN GUARDARLA */
-async function generarImagenCredencial(nombre, codigo, fecha, hora, expiracion){
+/* GENERA LA IMAGEN (CANVAS) DE UNA CREDENCIAL, CON FOTO Y UBICACIÓN */
+async function generarImagenCredencial(nombre, codigo, fecha, hora, expiracion, fotoURL, ubicacion){
     let canvas = document.createElement("canvas");
-    canvas.width = 400;
-    canvas.height = 220;
+    canvas.width = 500;
+    canvas.height = 280;
     let ctx = canvas.getContext("2d");
 
-    // Fondo base (por si la imagen falla)
+    // Fondo base
     ctx.fillStyle = "#f4f0ea";
-    ctx.fillRect(0, 0, 400, 220);
+    ctx.fillRect(0, 0, 500, 280);
 
     // Imagen de gato de fondo (cover-fit)
     try{
         let urlGato = await obtenerGatoAleatorio();
         let imgGato = await loadImageCORS(urlGato);
 
-        let scale = Math.max(400 / imgGato.width, 220 / imgGato.height);
+        let scale = Math.max(500 / imgGato.width, 280 / imgGato.height);
         let w = imgGato.width * scale;
         let h = imgGato.height * scale;
-        let x = (400 - w) / 2;
-        let y = (220 - h) / 2;
+        let x = (500 - w) / 2;
+        let y = (280 - h) / 2;
         ctx.drawImage(imgGato, x, y, w, h);
     }catch(err){
         // si falla, se queda el fondo base
     }
 
     // Overlay oscuro para que el texto se lea bien
-    ctx.fillStyle = "rgba(0,0,0,0.45)";
-    ctx.fillRect(0, 0, 400, 220);
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.fillRect(0, 0, 500, 280);
 
     // Borde decorativo
     ctx.strokeStyle = "#b09e8d";
-    ctx.lineWidth = 5;
-    ctx.strokeRect(10, 10, 380, 200);
+    ctx.lineWidth = 6;
+    ctx.strokeRect(12, 12, 476, 256);
 
-    // Texto
+    // Foto de perfil (círculo, izquierda)
+    if(fotoURL){
+        try{
+            let imgPerfil = await loadImageCORS(fotoURL);
+            let radioFoto = 35;
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(50, 50, radioFoto, 0, Math.PI * 2);
+            ctx.strokeStyle = "#b09e8d";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.clip();
+            ctx.drawImage(imgPerfil, 50 - radioFoto, 50 - radioFoto, radioFoto * 2, radioFoto * 2);
+            ctx.restore();
+        }catch(err){
+            // Si falla, dibujar un círculo vacío
+            ctx.beginPath();
+            ctx.arc(50, 50, 35, 0, Math.PI * 2);
+            ctx.strokeStyle = "#b09e8d";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+    }else{
+        // Avatar placeholder
+        ctx.beginPath();
+        ctx.arc(50, 50, 35, 0, Math.PI * 2);
+        ctx.strokeStyle = "#b09e8d";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.fillStyle = "#b09e8d";
+        ctx.font = "24px Arial";
+        ctx.fillText("👤", 35, 60);
+    }
+
+    // Texto (ajustado para dejar espacio a la foto)
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 20px 'Playfair Display', serif";
-    ctx.fillText("MichiHub ID", 125, 42);
+    ctx.font = "bold 18px 'Playfair Display', serif";
+    ctx.fillText("MichiHub ID", 130, 40);
 
-    ctx.font = "16px Arial";
-    ctx.fillText("Nombre: " + nombre, 30, 80);
-    ctx.fillText("Código: " + codigo, 30, 104);
+    ctx.font = "14px Arial";
+    ctx.fillText("Nombre: " + nombre, 130, 65);
+    ctx.fillText("Código: " + codigo, 130, 85);
+    
     ctx.font = "12px Arial";
-    ctx.fillText("Creado: " + fecha + " - " + hora, 30, 126);
-    if(expiracion) ctx.fillText("Válido hasta: " + expiracion, 30, 144);
-    ctx.font = "italic 11px Arial";
-    ctx.fillText("¡Gracias por unirte a MichiHub! 🐾", 30, 165);
+    ctx.fillText("Creado: " + fecha + " - " + hora, 130, 105);
+    
+    if(ubicacion){
+        ctx.fillText("Ubicación: " + ubicacion, 130, 125);
+    }
+    
+    if(expiracion) {
+        ctx.fillText("Válido hasta: " + expiracion, 130, ubicacion ? 145 : 125);
+    }
+    
+    ctx.font = "italic 10px Arial";
+    let msgY = ubicacion ? 165 : 145;
+    ctx.fillText("¡Gracias por unirte a MichiHub! 🐾", 30, msgY);
 
     let img;
     try{
         img = canvas.toDataURL();
     }catch(err){
-        // Si el canvas queda "tainted" por CORS, se redibuja todo sin la imagen de gato
-        // para no perder la credencial.
-        ctx.clearRect(0, 0, 400, 220);
+        // Fallback sin imagen de fondo si hay problema con CORS
+        ctx.clearRect(0, 0, 500, 280);
         ctx.fillStyle = "#f4f0ea";
-        ctx.fillRect(0, 0, 400, 220);
-        ctx.fillStyle = "rgba(0,0,0,0.45)";
-        ctx.fillRect(0, 0, 400, 220);
+        ctx.fillRect(0, 0, 500, 280);
+        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.fillRect(0, 0, 500, 280);
         ctx.strokeStyle = "#b09e8d";
-        ctx.lineWidth = 5;
-        ctx.strokeRect(10, 10, 380, 200);
+        ctx.lineWidth = 6;
+        ctx.strokeRect(12, 12, 476, 256);
+        
+        if(fotoURL){
+            ctx.beginPath();
+            ctx.arc(50, 50, 35, 0, Math.PI * 2);
+            ctx.strokeStyle = "#b09e8d";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+        
         ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 20px 'Playfair Display', serif";
-        ctx.fillText("MichiHub ID", 125, 42);
-        ctx.font = "16px Arial";
-        ctx.fillText("Nombre: " + nombre, 30, 80);
-        ctx.fillText("Código: " + codigo, 30, 104);
+        ctx.font = "bold 18px 'Playfair Display', serif";
+        ctx.fillText("MichiHub ID", 130, 40);
+        ctx.font = "14px Arial";
+        ctx.fillText("Nombre: " + nombre, 130, 65);
+        ctx.fillText("Código: " + codigo, 130, 85);
         ctx.font = "12px Arial";
-        ctx.fillText("Creado: " + fecha + " - " + hora, 30, 126);
-        if(expiracion) ctx.fillText("Válido hasta: " + expiracion, 30, 144);
-        ctx.font = "italic 11px Arial";
-        ctx.fillText("¡Gracias por unirte a MichiHub! 🐾", 30, 165);
+        ctx.fillText("Creado: " + fecha + " - " + hora, 130, 105);
+        if(ubicacion) ctx.fillText("Ubicación: " + ubicacion, 130, 125);
+        if(expiracion) ctx.fillText("Válido hasta: " + expiracion, 130, ubicacion ? 145 : 125);
+        
         img = canvas.toDataURL();
     }
 
