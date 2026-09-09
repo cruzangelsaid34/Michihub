@@ -822,15 +822,7 @@ async function confirmarCrearCredencial(){
     let codigoGuardado = localStorage.getItem("codigoAcceso");
     let esPrimeraVez = !codigoGuardado;
 
-    if(codigoGuardado){
-        let ingreso = prompt("Ingresa tu código de acceso existente:");
-        if(ingreso !== codigoGuardado){
-            alert("Código incorrecto.");
-            return;
-        }
-    }
-
-    let codigo = generarCodigo();
+    let codigo = codigoGuardado || generarCodigo();
     localStorage.setItem("codigoAcceso", codigo);
 
     if(esPrimeraVez){
