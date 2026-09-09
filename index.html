@@ -595,7 +595,6 @@ async function regenerarCredencialUI(nombre){
         alert("Esa credencial ya no existe.");
         return;
     }
-    if(!validarCodigoAcceso()) return;
 
     let data = JSON.parse(rawData);
     let fecha = new Date().toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" });
@@ -628,7 +627,7 @@ function calcularExpiracion(){
     };
 }
 
-/* ELIMINAR (requiere confirmación + código de acceso, no toca el código de acceso) */
+/* ELIMINAR (requiere confirmación, no pide código) */
 function eliminarCredencialUI(nombre){
     let rawData = localStorage.getItem("credencial_" + nombre);
     if(!rawData){
@@ -636,7 +635,6 @@ function eliminarCredencialUI(nombre){
         return;
     }
     if(!confirm(`¿Seguro que quieres eliminar la credencial de "${nombre}"? Esta acción no se puede deshacer.`)) return;
-    if(!validarCodigoAcceso()) return;
 
     localStorage.removeItem("credencial_" + nombre);
     document.getElementById("resultado-id").innerHTML = "Credencial eliminada.";
