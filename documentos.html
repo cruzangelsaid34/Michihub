@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MichiHub | Documentos</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Playfair+Display:ital@1&display=swap');
+
+:root {
+    --bg-base: #f4f0ea;
+    --text-main: #4a4238;
+    --card-bg: rgba(255, 255, 255, 0.6);
+    --accent: #b09e8d;
+    --shadow: rgba(138, 125, 110, 0.15);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+    background-color:var(--bg-base);
+    background-image:url('https://www.transparenttextures.com/patterns/cream-paper.png');
+    color:var(--text-main);
+    font-family:'Nunito',sans-serif;
+    min-height:100vh;
+    padding:30px 20px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+}
+
+header{
+    width:100%;
+    max-width:600px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    margin-bottom:20px;
+    gap:20px;
+}
+.logo-area h1{
+    font-family:'Playfair Display',serif;
+    font-size:2.5rem;
+}
+.link-recuperar{display:block;text-align:center;margin-top:12px;font-size:0.85rem;color:var(--text-main);opacity:0.7;text-decoration:underline;cursor:pointer}
+
+nav.menu-principal{
+    width:100%;
+    max-width:600px;
+    display:flex;
+    justify-content:center;
+    gap:6px;
+    margin-bottom:20px;
+    flex-wrap:nowrap;
+}
+nav.menu-principal a{
+    text-decoration:none;
+    color:var(--text-main);
+    background:var(--card-bg);
+    padding:6px 4px;
+    border-radius:16px;
+    font-weight:bold;
+    box-shadow:0 4px 10px var(--shadow);
+    font-size:0.68rem;
+    white-space:nowrap;
+    flex:1;
+    text-align:center;
+}
+nav.menu-principal a.activo{
+    background:var(--accent);
+    color:white;
+}
+
+main{
+    width:100%;
+    max-width:600px;
+    display:flex;
+    flex-direction:column;
+    gap:30px;
+}
+.card{
+    background:var(--card-bg);
+    border-radius:20px;
+    padding:30px;
+    box-shadow:0 8px 25px var(--shadow);
+    width:100%;
+}
+.card-title{
+    font-family:'Playfair Display',serif;
+    margin-bottom:20px;
+}
+
+#input-archivo-doc{ display:block; margin-bottom:12px; }
+#texto-extraido{
+    width:100%;
+    min-height:220px;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid #ccc;
+    font-family:'Nunito',sans-serif;
+    resize:vertical;
+}
+.fila-botones-doc{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+.fila-botones-doc button{
+    padding:10px 16px;
+    border:none;
+    border-radius:10px;
+    background:#4a4238;
+    color:white;
+    cursor:pointer;
+    font-weight:bold;
+}
+#estado-doc{ font-size:0.85rem; opacity:0.8; margin-top:8px; }
+
+#login-gate{
+    position:fixed;
+    inset:0;
+    background-color:var(--bg-base);
+    background-image:url('https://www.transparenttextures.com/patterns/cream-paper.png');
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    z-index:9000;
+    text-align:center;
+    padding:20px;
+}
+#login-gate.activo{ display:flex; }
+#login-gate h1{
+    font-family:'Playfair Display',serif;
+    font-size:2.5rem;
+    color:var(--text-main);
+}
+#login-gate p{
+    color:var(--text-main);
+    opacity:0.8;
+    max-width:320px;
+}
+
+
+#loading-screen{
+    position:fixed;
+    inset:0;
+    background-color:var(--bg-base);
+    background-image:url('https://www.transparenttextures.com/patterns/cream-paper.png');
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    z-index:9999;
+    transition:opacity 0.5s ease;
+}
+#loading-screen.fade-out{
+    opacity:0;
+    pointer-events:none;
+}
+#loading-screen h1{
+    font-family:'Playfair Display',serif;
+    font-size:2.5rem;
+    color:var(--text-main);
+}
+.loading-bar-track{
+    width:200px;
+    height:8px;
+    background:rgba(74,66,56,0.15);
+    border-radius:10px;
+    overflow:hidden;
+}
+.loading-bar-fill{
+    height:100%;
+    width:40%;
+    background:var(--accent);
+    border-radius:10px;
+    animation:cargando 1.2s ease-in-out infinite;
+}
+@keyframes cargando{
+    0%{ transform:translateX(-100%); }
+    100%{ transform:translateX(350%); }
+}
+/* ===== DOCUMENTOS (mismo estilo crema que el resto de MichiHub) ===== */
+.docs-dark-wrapper{
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+}
+.docs-dark-wrapper h2{
+    color:var(--text-main);
+    font-family:'Playfair Display',serif;
+}
+.docs-dark-wrapper p{ color:var(--text-main); opacity:0.8; }
+.docs-dark-wrapper #estado-doc{ color:var(--text-main); font-weight:bold; opacity:1; }
+
+#texto-extraido:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(176,158,141,0.2);
+}
+.docs-dark-wrapper .card{
+    background:var(--card-bg);
+    box-shadow:0 8px 25px var(--shadow);
+    padding:20px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="loading-screen">
+<h1>MichiHub</h1>
+<div class="loading-bar-track"><div class="loading-bar-fill"></div></div>
+</div>
+
+
+<div id="login-gate">
+<h1>MichiHub</h1>
+<p>Inicia sesión con Google para entrar al lounge.</p>
+<div id="g_id_onload"
+     data-client_id="180603573320-02mmvr7iafpop549a33582dpqjkppm83.apps.googleusercontent.com"
+     data-callback="manejarLoginGoogle"
+     data-auto_prompt="false">
+</div>
+<div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="outline"></div>
+</div>
+
+<header>
+<div class="logo-area">
+<h1>MichiHub</h1>
+<p>Documentos</p>
+</div>
+<span id="link-cerrar-sesion" class="link-recuperar" style="display:none;">Cerrar sesión</span>
+</header>
+
+<nav class="menu-principal">
+<a href="index.html">🏠 Inicio</a>
+<a href="chat.html">💬 Chat</a>
+<a href="Radio.html">📻 Radio</a>
+<a href="documentos.html" class="activo">📄 Docs</a>
+<a href="nube.html">☁️ Nube</a>
+</nav>
+
+<main>
+
+<div style="position:relative;display:flex;flex-direction:column;gap:30px;">
+
+<div id="cartel-documentos-cerrado" style="display:none;position:absolute;inset:0;background:rgba(244,240,234,0.97);border-radius:20px;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;z-index:10;">
+<p style="font-weight:bold;font-size:1.1rem;margin-bottom:8px;color:var(--text-main);">🔒 Por el momento no disponible</p>
+<p style="font-size:0.9rem;color:var(--text-main);opacity:0.75;">Para soporte, escribe a:<br><strong>michihub@hotmail.com</strong></p>
+</div>
+
+<div class="docs-dark-wrapper">
+
+<div class="card">
+<h2 class="card-title">🖥️ Extraer texto de un archivo</h2>
+<p style="margin-bottom:12px;font-size:0.9rem;">Sube un PDF o un Word (.docx) para sacar su texto.</p>
+<input type="file" id="input-archivo-doc" accept=".pdf,.docx">
+<div id="estado-doc"></div>
+</div>
+
+<div class="card">
+<h2 class="card-title">Texto (extraído o escrito por ti)</h2>
+<textarea id="texto-extraido" placeholder="Aquí aparecerá el texto extraído, o puedes escribir/pegar tu propio texto para convertirlo en PDF..."></textarea>
+<div class="fila-botones-doc">
+<button id="btn-descargar-pdf">⬇️ Descargar como PDF</button>
+<button id="btn-descargar-txt">⬇️ Descargar como TXT</button>
+<button id="btn-limpiar-doc">🧹 Limpiar</button>
+</div>
+</div>
+
+</div>
+
+</div>
+
+</main>
+
+<!-- Librerías para leer y crear documentos -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+function decodificarJWT(token){
+    let payload = token.split(".")[1];
+    let json = decodeURIComponent(atob(payload).split("").map(c =>
+        "%" + c.charCodeAt(0).toString(16).padStart(2, "0")
+    ).join(""));
+    return JSON.parse(json);
+}
+
+function manejarLoginGoogle(response){
+    let datosUsuario = decodificarJWT(response.credential);
+    let nombre = datosUsuario.name || datosUsuario.email;
+
+    localStorage.setItem("michihubLogueado", "true");
+    localStorage.setItem("michihubNombre", nombre);
+    localStorage.setItem("michihubEmail", datosUsuario.email || "");
+    localStorage.setItem("michihubFoto", datosUsuario.picture || "");
+
+    document.getElementById("login-gate").classList.remove("activo");
+    document.getElementById("link-cerrar-sesion").style.display = "inline-block";
+}
+
+function cerrarSesion(){
+    localStorage.removeItem("michihubLogueado");
+    localStorage.removeItem("michihubNombre");
+    localStorage.removeItem("michihubEmail");
+    localStorage.removeItem("michihubFoto");
+    location.reload();
+}
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("link-cerrar-sesion").addEventListener("click", cerrarSesion);
+});
+
+(function verificarSesionObligatoria(){
+    let logueado = localStorage.getItem("michihubLogueado") === "true";
+    if(!logueado){
+        document.getElementById("login-gate").classList.add("activo");
+    }else{
+        document.getElementById("link-cerrar-sesion").style.display = "inline-block";
+    }
+})();
+
+/* PWA: manifest + ícono + service worker (para que Chrome ofrezca instalar desde cualquier página) */
+function configurarPWA(){
+    let linkApple = document.createElement("link");
+    linkApple.rel = "apple-touch-icon";
+    linkApple.href = "icon-192.png";
+    document.head.appendChild(linkApple);
+
+    let metaTheme = document.createElement("meta");
+    metaTheme.name = "theme-color";
+    metaTheme.content = "#b09e8d";
+    document.head.appendChild(metaTheme);
+
+    let linkManifest = document.createElement("link");
+    linkManifest.rel = "manifest";
+    linkManifest.href = "manifest.json";
+    document.head.appendChild(linkManifest);
+
+    if("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")){
+        navigator.serviceWorker.register("service-worker.js")
+            .catch(err => console.log("No se pudo registrar el service worker:", err));
+    }
+}
+configurarPWA();
+</script>
+
+<!-- Retomar música en segundo plano si estaba sonando en la página anterior -->
+<audio id="bg-music-sync" loop style="display:none;">
+<source src="https://stream.zeno.fm/f3wvbbqmdg8uv" type="audio/mpeg">
+</audio>
+<script>
+(function retomarMusicaSiEstabaSonando(){
+    const musicaSync = document.getElementById("bg-music-sync");
+    if(localStorage.getItem("michihubMusicaEstado") === "reproduciendo"){
+        musicaSync.play().catch(() => {});
+    }
+})();
+</script>
+
+<script>
+(function(){
+    if(window.pdfjsLib){
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    }
+
+    const inputArchivo = document.getElementById("input-archivo-doc");
+    const textoExtraido = document.getElementById("texto-extraido");
+    const estadoDoc = document.getElementById("estado-doc");
+    const btnDescargarPDF = document.getElementById("btn-descargar-pdf");
+    const btnDescargarTXT = document.getElementById("btn-descargar-txt");
+    const btnLimpiar = document.getElementById("btn-limpiar-doc");
+
+    async function extraerTextoDePDF(archivo){
+        const arrayBuffer = await archivo.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let textoCompleto = "";
+        for(let i = 1; i <= pdf.numPages; i++){
+            const pagina = await pdf.getPage(i);
+            const contenido = await pagina.getTextContent();
+            const textoPagina = contenido.items.map(item => item.str).join(" ");
+            textoCompleto += textoPagina + "\n\n";
+        }
+        return textoCompleto.trim();
+    }
+
+    async function extraerTextoDeDOCX(archivo){
+        const arrayBuffer = await archivo.arrayBuffer();
+        const resultado = await mammoth.extractRawText({ arrayBuffer });
+        return resultado.value.trim();
+    }
+
+    inputArchivo.addEventListener("change", async () => {
+        const archivo = inputArchivo.files[0];
+        if(!archivo) return;
+
+        estadoDoc.textContent = "Extrayendo texto...";
+        try{
+            let texto = "";
+            if(archivo.name.toLowerCase().endsWith(".pdf")){
+                texto = await extraerTextoDePDF(archivo);
+            }else if(archivo.name.toLowerCase().endsWith(".docx")){
+                texto = await extraerTextoDeDOCX(archivo);
+            }else{
+                estadoDoc.textContent = "Formato no soportado. Usa .pdf o .docx";
+                return;
+            }
+            textoExtraido.value = texto;
+            estadoDoc.textContent = "✅ Texto extraído correctamente.";
+        }catch(err){
+            console.error(err);
+            estadoDoc.textContent = "❌ No se pudo leer el archivo.";
+        }
+    });
+
+    btnDescargarPDF.addEventListener("click", () => {
+        const texto = textoExtraido.value.trim();
+        if(!texto){ alert("No hay texto para convertir."); return; }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const lineas = doc.splitTextToSize(texto, 180);
+        doc.text(lineas, 15, 20);
+        doc.save("documento-michihub.pdf");
+    });
+
+    btnDescargarTXT.addEventListener("click", () => {
+        const texto = textoExtraido.value.trim();
+        if(!texto){ alert("No hay texto para descargar."); return; }
+
+        const blob = new Blob([texto], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "documento-michihub.txt";
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    btnLimpiar.addEventListener("click", () => {
+        textoExtraido.value = "";
+        estadoDoc.textContent = "";
+        inputArchivo.value = "";
+    });
+})();
+</script>
+
+
+<script>
+/* PANTALLA DE CARGA */
+let loadingTimeoutId = null;
+
+function mostrarPantallaCarga(){
+    let loading = document.getElementById("loading-screen");
+    if(!loading) return;
+
+    clearTimeout(loadingTimeoutId);
+    loading.classList.remove("fade-out");
+
+    loadingTimeoutId = setTimeout(() => {
+        loading.classList.add("fade-out");
+    }, 2200);
+}
+
+window.addEventListener("load", mostrarPantallaCarga);
+window.addEventListener("pageshow", (e) => {
+    if(e.persisted) mostrarPantallaCarga();
+});
+document.addEventListener("visibilitychange", () => {
+    if(document.visibilityState === "visible") mostrarPantallaCarga();
+});
+mostrarPantallaCarga();
+</script>
+
+<!-- CONTROL DE SECCIÓN: SDK de Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+    const SUPABASE_URL = "https://veihvfcnczawoycphhga.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_DpvZMjPgjcfxCpK5OTJRHw_ah2emZkb";
+    const supabaseDocs = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const ADMIN_EMAIL = "cruzangelsaid34@gmail.com";
+    function esAdmin(){
+        return localStorage.getItem("michihubEmail") === ADMIN_EMAIL;
+    }
+
+    const cartelDocsCerrado = document.getElementById("cartel-documentos-cerrado");
+
+    function mostrarUOcultarCartelDocs(cerrado){
+        if(cerrado && !esAdmin()){
+            cartelDocsCerrado.style.display = "flex";
+        }else{
+            cartelDocsCerrado.style.display = "none";
+        }
+    }
+
+    async function revisarEstadoSeccionDocs(){
+        const { data } = await supabaseDocs
+            .from("configuracion_secciones")
+            .select("cerrado")
+            .eq("seccion", "documentos")
+            .maybeSingle();
+        mostrarUOcultarCartelDocs(data ? data.cerrado : false);
+    }
+
+    revisarEstadoSeccionDocs();
+
+    supabaseDocs
+        .channel("config-secciones-documentos")
+        .on(
+            "postgres_changes",
+            { event: "UPDATE", schema: "public", table: "configuracion_secciones", filter: "seccion=eq.documentos" },
+            (payload) => mostrarUOcultarCartelDocs(payload.new.cerrado)
+        )
+        .subscribe();
+})();
+</script>
+
+</body>
+</html>

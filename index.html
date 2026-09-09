@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MichiHub | Lo-fi Lounge</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Playfair+Display:ital@1&display=swap');
+
+:root {
+    --bg-base: #f4f0ea;
+    --text-main: #4a4238;
+    --card-bg: rgba(255, 255, 255, 0.6);
+    --accent: #b09e8d;
+    --shadow: rgba(138, 125, 110, 0.15);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+    background-color:var(--bg-base);
+    background-image:url('https://www.transparenttextures.com/patterns/cream-paper.png');
+    color:var(--text-main);
+    font-family:'Nunito',sans-serif;
+    min-height:100vh;
+    padding:30px 20px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+}
+
+/* HEADER */
+header{
+    width:100%;
+    max-width:600px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    margin-bottom:40px;
+    gap:20px;
+}
+
+.logo-area h1{
+    font-family:'Playfair Display',serif;
+    font-size:2.5rem;
+}
+
+.radio-player{
+    display:flex;
+    gap:10px;
+    background:var(--card-bg);
+    padding:10px 20px;
+    border-radius:30px;
+    box-shadow:0 4px 15px var(--shadow);
+    align-items:center;
+}
+
+.radio-player button{
+    border:none;
+    background:var(--accent);
+    color:white;
+    padding:5px 12px;
+    border-radius:15px;
+    cursor:pointer;
+}
+
+/* MAIN */
+main{
+    width:100%;
+    max-width:600px;
+    display:flex;
+    flex-direction:column;
+    gap:30px;
+}
+
+.card{
+    background:var(--card-bg);
+    border-radius:20px;
+    padding:30px;
+    box-shadow:0 8px 25px var(--shadow);
+    width:100%;
+}
+
+.card-title{
+    font-family:'Playfair Display',serif;
+    margin-bottom:20px;
+}
+
+/* BUSCADOR */
+.search-box{display:flex;gap:10px;margin-bottom:20px}
+.search-box input{flex:1;padding:10px;border-radius:10px;border:1px solid #ccc;outline:none}
+.search-box button{padding:10px 20px;border:none;border-radius:10px;background:#4a4238;color:white;cursor:pointer}
+
+/* RESULTADO */
+#resultado-id{text-align:center;min-height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.id-image{max-width:100%;margin-bottom:10px;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,0.1)}
+.btn-descarga{display:inline-block;padding:8px 20px;background:#b09e8d;color:white;border-radius:20px;text-decoration:none;margin-top:10px}
+
+.credencial-acciones{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:10px}
+.btn-accion{padding:8px 20px;border:none;border-radius:20px;background:var(--accent);color:white;cursor:pointer;font-size:0.9rem}
+.btn-eliminar{background:#b25c50}
+.link-recuperar{display:block;text-align:center;margin-top:12px;font-size:0.85rem;color:var(--text-main);opacity:0.7;text-decoration:underline;cursor:pointer}
+
+/* BUSCADOR DE IMAGENES */
+.img-search-results{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:15px}
+.img-search-results .img-result{position:relative;border-radius:10px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.1);cursor:pointer;aspect-ratio:1}
+.img-search-results .img-result img{width:100%;height:100%;object-fit:cover;display:block}
+.img-search-results .img-download{position:absolute;bottom:5px;right:5px;background:rgba(0,0,0,0.6);color:white;border:none;border-radius:50%;width:28px;height:28px;font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.img-search-status{text-align:center;font-size:0.9rem;color:var(--text-main);opacity:0.7;margin-top:10px}
+
+/* JUEGOS */
+.games-container{display:flex;flex-direction:column;gap:30px;width:100%}
+
+/* TicTacToe */
+.tic-tac-toe{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px}
+.cell{aspect-ratio:1;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:2rem;cursor:pointer;font-weight:bold;color:var(--text-main)}
+
+/* MEMORY */
+.memory-game{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.memory-card{aspect-ratio:1;background:#b09e8d;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:2rem;color:transparent;cursor:pointer;user-select:none;transition:transform 0.2s}
+.memory-card.flipped{background:#fff;color:#000;transform:rotateY(180deg)}
+
+/* PANTALLA DE CARGA */
+#loading-screen{
+    position:fixed;
+    inset:0;
+    background-color:var(--bg-base);
+    background-image:url('https://www.transparenttextures.com/patterns/cream-paper.png');
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    z-index:9999;
+    transition:opacity 0.5s ease;
+}
+#loading-screen.fade-out{
+    opacity:0;
+    pointer-events:none;
+}
+#loading-screen h1{
+    font-family:'Playfair Display',serif;
+    font-size:2.5rem;
+    color:var(--text-main);
+}
+.loading-bar-track{
+    width:200px;
+    height:8px;
+    background:rgba(74,66,56,0.15);
+    border-radius:10px;
+    overflow:hidden;
+}
+.loading-bar-fill{
+    height:100%;
+    width:40%;
+    background:var(--accent);
+    border-radius:10px;
+    animation:cargando 1.2s ease-in-out infinite;
+}
+@keyframes cargando{
+    0%{ transform:translateX(-100%); }
+    100%{ transform:translateX(350%); }
+}
+
+/* PANTALLA DE INICIO DE SESIÓN OBLIGATORIO */
+#login-gate{
+    position:fixed;
+    inset:0;
+    background-color:var(--bg-base);
+    background-image:url('https://www.transparenttextures.com/patterns/cream-paper.png');
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    z-index:9000;
+    text-align:center;
+    padding:20px;
+}
+#login-gate.activo{ display:flex; }
+#login-gate h1{
+    font-family:'Playfair Display',serif;
+    font-size:2.5rem;
+    color:var(--text-main);
+}
+#login-gate p{
+    color:var(--text-main);
+    opacity:0.8;
+    max-width:320px;
+}
+
+/* MENU DE NAVEGACION */
+nav.menu-principal{
+    width:100%;
+    max-width:600px;
+    display:flex;
+    justify-content:center;
+    gap:6px;
+    margin-bottom:20px;
+    flex-wrap:nowrap;
+}
+nav.menu-principal a{
+    text-decoration:none;
+    color:var(--text-main);
+    background:var(--card-bg);
+    padding:6px 4px;
+    border-radius:16px;
+    font-weight:bold;
+    box-shadow:0 4px 10px var(--shadow);
+    font-size:0.68rem;
+    white-space:nowrap;
+    flex:1;
+    text-align:center;
+}
+nav.menu-principal a.activo{
+    background:var(--accent);
+    color:white;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="loading-screen">
+<h1>MichiHub</h1>
+<div class="loading-bar-track"><div class="loading-bar-fill"></div></div>
+</div>
+
+<div id="login-gate">
+<h1>MichiHub</h1>
+<p>Inicia sesión con Google para entrar al lounge.</p>
+<div id="g_id_onload"
+     data-client_id="180603573320-02mmvr7iafpop549a33582dpqjkppm83.apps.googleusercontent.com"
+     data-callback="manejarLoginGoogle"
+     data-auto_prompt="false">
+</div>
+<div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="outline"></div>
+</div>
+
+<audio id="bg-music" loop>
+<source src="https://stream.zeno.fm/f3wvbbqmdg8uv" type="audio/mpeg">
+</audio>
+
+<header>
+<div class="logo-area">
+<h1>MichiHub</h1>
+<p>Archivo de Identificación & Lounge</p>
+</div>
+
+<div class="radio-player">
+<span id="radio-text">Pausado</span>
+<button id="radio-btn" onclick="toggleMusic()">▶</button>
+</div>
+
+<button id="btn-instalar" style="display:none;border:none;background:var(--accent);color:white;padding:8px 18px;border-radius:20px;cursor:pointer;font-weight:bold;">
+📲 Instalar app
+</button>
+
+<span id="link-cerrar-sesion" class="link-recuperar" style="display:none;">Cerrar sesión</span>
+</header>
+
+<nav class="menu-principal">
+<a href="index.html" class="activo">🏠 Inicio</a>
+<a href="chat.html">💬 Chat</a>
+<a href="Radio.html">📻 Radio</a>
+<a href="documentos.html">📄 Docs</a>
+<a href="nube.html">☁️ Nube</a>
+</nav>
+
+<main>
+
+<div class="card">
+<h2 class="card-title">Identificación</h2>
+
+<div class="search-box">
+<input type="text" id="nickInput" placeholder="Nombre">
+<button onclick="buscarID()">Buscar</button>
+</div>
+
+<div id="resultado-id">Introduce un nombre</div>
+
+<button onclick="crearCredencial()" style="margin-top:15px;width:100%;padding:12px;border:none;border-radius:10px;background:#b09e8d;color:white;cursor:pointer;font-weight:bold;">
+Crear Credencial
+</button>
+
+<span class="link-recuperar" onclick="recuperarCodigo()">¿Olvidaste tu código de acceso?</span>
+
+</div>
+
+<div class="card">
+<h2 class="card-title">Buscador de Imágenes</h2>
+
+<div class="search-box">
+<input type="text" id="imgQueryInput" placeholder="¿Qué quieres buscar?" onkeydown="if(event.key==='Enter') buscarImagenes()">
+<button onclick="buscarImagenes()">Buscar</button>
+</div>
+
+<div id="img-search-status" class="img-search-status"></div>
+<div class="img-search-results" id="img-search-results"></div>
+
+</div>
+
+<div class="games-container">
+
+<div class="card">
+<h2 class="card-title">Tres en Raya</h2>
+<div class="tic-tac-toe" id="board"></div>
+<div id="tictac-status" style="text-align:center;font-weight:bold;">Turno: X</div>
+</div>
+
+<div class="card">
+<h2 class="card-title">Memoria</h2>
+<div class="memory-game" id="memory-board"></div>
+</div>
+
+</div>
+
+</main>
+
+<script>
+
+/* PWA: manifest + ícono + service worker como ARCHIVOS REALES.
+   (Antes se generaban como data URI / blob URL, y Android no puede
+   construir el ícono de instalación —WebAPK— a partir de eso: necesita
+   poder descargar esos recursos por red desde una URL real). */
+function configurarPWA(){
+    // Ícono para iOS ("Añadir a pantalla de inicio")
+    let linkApple = document.createElement("link");
+    linkApple.rel = "apple-touch-icon";
+    linkApple.href = "icon-192.png";
+    document.head.appendChild(linkApple);
+
+    let metaTheme = document.createElement("meta");
+    metaTheme.name = "theme-color";
+    metaTheme.content = "#b09e8d";
+    document.head.appendChild(metaTheme);
+
+    // Manifest (necesario para que Chrome/Android ofrezcan instalar)
+    let linkManifest = document.createElement("link");
+    linkManifest.rel = "manifest";
+    linkManifest.href = "manifest.json";
+    document.head.appendChild(linkManifest);
+
+    // Service worker mínimo (necesario para que se considere "instalable")
+    if("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")){
+        navigator.serviceWorker.register("service-worker.js")
+            .catch(err => console.log("No se pudo registrar el service worker:", err));
+    }
+}
+configurarPWA();
+
+/* Botón "Instalar app" (Chrome/Edge/Android) */
+let promptDiferido = null;
+let btnInstalar = document.getElementById("btn-instalar");
+
+window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    promptDiferido = e;
+    btnInstalar.style.display = "inline-block";
+});
+
+btnInstalar.addEventListener("click", async () => {
+    if(!promptDiferido) return;
+    promptDiferido.prompt();
+    await promptDiferido.userChoice;
+    promptDiferido = null;
+    btnInstalar.style.display = "none";
+});
+
+window.addEventListener("appinstalled", () => {
+    btnInstalar.style.display = "none";
+});
+
+/* PANTALLA DE CARGA */
+let loadingTimeoutId = null;
+
+function mostrarPantallaCarga(){
+    let loading = document.getElementById("loading-screen");
+    if(!loading) return;
+
+    clearTimeout(loadingTimeoutId);
+    loading.classList.remove("fade-out");
+
+    loadingTimeoutId = setTimeout(() => {
+        loading.classList.add("fade-out");
+    }, 2200);
+}
+
+// Al cargar la página por primera vez
+window.addEventListener("load", mostrarPantallaCarga);
+
+// Al volver mediante el botón "atrás/adelante" del navegador (bfcache)
+window.addEventListener("pageshow", (e) => {
+    if(e.persisted) mostrarPantallaCarga();
+});
+
+// Al volver a la pestaña/app después de salir a otra
+document.addEventListener("visibilitychange", () => {
+    if(document.visibilityState === "visible") mostrarPantallaCarga();
+});
+
+/* AUDIO */
+const music = document.getElementById("bg-music");
+const radioText = document.getElementById("radio-text");
+const radioBtn = document.getElementById("radio-btn");
+
+function actualizarUIMusica(reproduciendo){
+    if(reproduciendo){
+        radioText.innerText = "Reproduciendo";
+        radioBtn.innerText = "❚❚";
+    }else{
+        radioText.innerText = "Pausado";
+        radioBtn.innerText = "▶";
+    }
+}
+
+function toggleMusic(){
+    if(music.paused){
+        music.play();
+        localStorage.setItem("michihubMusicaEstado", "reproduciendo");
+        actualizarUIMusica(true);
+    }else{
+        music.pause();
+        localStorage.setItem("michihubMusicaEstado", "pausado");
+        actualizarUIMusica(false);
+    }
+}
+
+// Si en la página anterior la música estaba sonando, intentar retomarla aquí
+if(localStorage.getItem("michihubMusicaEstado") === "reproduciendo"){
+    music.play().then(() => {
+        actualizarUIMusica(true);
+    }).catch(() => {
+        // El navegador bloqueó el autoplay; se necesita un toque para retomarla
+        actualizarUIMusica(false);
+    });
+}
+
+/* LOGIN CON GOOGLE */
+function decodificarJWT(token){
+    let payload = token.split(".")[1];
+    let json = decodeURIComponent(atob(payload).split("").map(c =>
+        "%" + c.charCodeAt(0).toString(16).padStart(2, "0")
+    ).join(""));
+    return JSON.parse(json);
+}
+
+function manejarLoginGoogle(response){
+    let datosUsuario = decodificarJWT(response.credential);
+    let nombre = datosUsuario.name || datosUsuario.email;
+
+    localStorage.setItem("michihubLogueado", "true");
+    localStorage.setItem("michihubNombre", nombre);
+    localStorage.setItem("michihubEmail", datosUsuario.email || "");
+    localStorage.setItem("michihubFoto", datosUsuario.picture || "");
+
+    document.getElementById("login-gate").classList.remove("activo");
+    document.getElementById("link-cerrar-sesion").style.display = "inline-block";
+    document.getElementById("nickInput").value = nombre;
+    buscarID();
+}
+
+function cerrarSesion(){
+    localStorage.removeItem("michihubLogueado");
+    localStorage.removeItem("michihubNombre");
+    location.reload();
+}
+
+/* Verifica la sesión al entrar; si no hay login, bloquea el acceso */
+(function verificarSesionObligatoria(){
+    let logueado = localStorage.getItem("michihubLogueado") === "true";
+
+    if(!logueado){
+        document.getElementById("login-gate").classList.add("activo");
+    }else{
+        document.getElementById("link-cerrar-sesion").style.display = "inline-block";
+        let nombreGuardado = localStorage.getItem("michihubNombre");
+        if(nombreGuardado) document.getElementById("nickInput").value = nombreGuardado;
+    }
+})();
+
+document.getElementById("link-cerrar-sesion").addEventListener("click", cerrarSesion);
+
+/* BUSCAR */
+function buscarID(){
+    let nombre = document.getElementById("nickInput").value.trim();
+    let resultado = document.getElementById("resultado-id");
+
+    if(!nombre){
+        resultado.innerHTML = "Por favor escribe un nombre.";
+        return;
+    }
+
+    let rawData = localStorage.getItem("credencial_" + nombre);
+
+    if(rawData){
+        let data = JSON.parse(rawData);
+
+        if(data.expiracionISO && new Date() > new Date(data.expiracionISO)){
+            localStorage.removeItem("credencial_" + nombre);
+            resultado.innerHTML = `La credencial de <b>${nombre}</b> expiró el ${data.expiracion} y fue eliminada automáticamente.`;
+            return;
+        }
+
+        mostrarResultadoCredencial(nombre, data);
+    }else{
+        resultado.innerHTML = "No existe ninguna credencial con ese nombre.";
+    }
+}
+
+/* RENDERIZADO DE RESULTADO + ACCIONES (regenerar / eliminar) */
+function mostrarResultadoCredencial(nombre, data, mensajeExtra){
+    let resultado = document.getElementById("resultado-id");
+    resultado.innerHTML = `
+        <img src="${data.img}" class="id-image">
+        <p>Código: <b>${data.codigo}</b></p>
+        ${data.fecha ? `<p>Creado: ${data.fecha}${data.hora ? " - " + data.hora : ""}</p>` : ""}
+        ${data.expiracion ? `<p>Válido hasta: <b>${data.expiracion}</b></p>` : ""}
+        ${mensajeExtra ? `<p>${mensajeExtra}</p>` : ""}
+        <div class="credencial-acciones">
+            <a href="${data.img}" download="credencial_${nombre}.png" class="btn-descarga">Descargar</a>
+        </div>
+    `;
+
+    let acciones = resultado.querySelector(".credencial-acciones");
+
+    let btnRegenerar = document.createElement("button");
+    btnRegenerar.className = "btn-accion";
+    btnRegenerar.innerText = "🔄 Regenerar";
+    btnRegenerar.onclick = () => regenerarCredencialUI(nombre);
+    acciones.appendChild(btnRegenerar);
+
+    let btnEliminar = document.createElement("button");
+    btnEliminar.className = "btn-accion btn-eliminar";
+    btnEliminar.innerText = "🗑️ Eliminar";
+    btnEliminar.onclick = () => eliminarCredencialUI(nombre);
+    acciones.appendChild(btnEliminar);
+}
+
+/* CONFIRMACIÓN DEL CÓDIGO DE ACCESO (para regenerar/eliminar) */
+function validarCodigoAcceso(){
+    let codigoGuardado = localStorage.getItem("codigoAcceso");
+    if(!codigoGuardado){
+        alert("No hay ningún código de acceso configurado todavía.");
+        return false;
+    }
+    let ingreso = prompt("Ingresa tu código de acceso para confirmar:");
+    if(ingreso !== codigoGuardado){
+        alert("Código incorrecto, contacta al administrador.");
+        return false;
+    }
+    return true;
+}
+
+/* REGENERAR (mantiene el código de la credencial y el código de acceso, solo renueva imagen y fecha) */
+async function regenerarCredencialUI(nombre){
+    let rawData = localStorage.getItem("credencial_" + nombre);
+    if(!rawData){
+        alert("Esa credencial ya no existe.");
+        return;
+    }
+    if(!validarCodigoAcceso()) return;
+
+    let data = JSON.parse(rawData);
+    let fecha = new Date().toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" });
+    let hora = new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+    let { expiracion, expiracionISO } = calcularExpiracion();
+
+    let img = await generarImagenCredencial(nombre, data.codigo, fecha, hora, expiracion);
+    let nuevaData = { img: img, codigo: data.codigo, fecha: fecha, hora: hora, expiracion: expiracion, expiracionISO: expiracionISO };
+
+    localStorage.setItem("credencial_" + nombre, JSON.stringify(nuevaData));
+    mostrarResultadoCredencial(nombre, nuevaData, "Credencial regenerada ✅");
+}
+
+/* CALCULA UNA FECHA DE EXPIRACIÓN FICTICIA (30 días desde hoy) */
+function calcularExpiracion(){
+    let fechaExp = new Date();
+    fechaExp.setDate(fechaExp.getDate() + 30);
+    return {
+        expiracion: fechaExp.toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" }),
+        expiracionISO: fechaExp.toISOString()
+    };
+}
+
+/* ELIMINAR (requiere confirmación + código de acceso, no toca el código de acceso) */
+function eliminarCredencialUI(nombre){
+    let rawData = localStorage.getItem("credencial_" + nombre);
+    if(!rawData){
+        alert("Esa credencial ya no existe.");
+        return;
+    }
+    if(!confirm(`¿Seguro que quieres eliminar la credencial de "${nombre}"? Esta acción no se puede deshacer.`)) return;
+    if(!validarCodigoAcceso()) return;
+
+    localStorage.removeItem("credencial_" + nombre);
+    document.getElementById("resultado-id").innerHTML = "Credencial eliminada.";
+}
+
+/* RECUPERAR CÓDIGO DE ACCESO MEDIANTE PREGUNTA DE SEGURIDAD */
+function configurarRecuperacion(){
+    let pregunta = prompt("Configura una pregunta de seguridad para poder recuperar tu código si lo pierdes (ej: ¿Nombre de tu primer gato?). Puedes dejarlo en blanco para omitir esto:");
+    if(!pregunta) return;
+    let respuesta = prompt("Ahora escribe la respuesta (la necesitarás para recuperar tu código):");
+    if(!respuesta) return;
+    localStorage.setItem("recuperacionPregunta", pregunta);
+    localStorage.setItem("recuperacionRespuesta", respuesta.trim().toLowerCase());
+}
+
+function recuperarCodigo(){
+    let codigoGuardado = localStorage.getItem("codigoAcceso");
+    if(!codigoGuardado){
+        alert("Todavía no se ha creado ningún código de acceso en este dispositivo.");
+        return;
+    }
+
+    let pregunta = localStorage.getItem("recuperacionPregunta");
+    let respuestaGuardada = localStorage.getItem("recuperacionRespuesta");
+
+    if(!pregunta || !respuestaGuardada){
+        alert("No configuraste una pregunta de seguridad, así que no es posible recuperar el código automáticamente.");
+        return;
+    }
+
+    let respuesta = prompt(pregunta);
+    if(respuesta === null) return;
+
+    if(respuesta.trim().toLowerCase() === respuestaGuardada){
+        alert("Tu código de acceso es: " + codigoGuardado);
+    }else{
+        alert("Respuesta incorrecta.");
+    }
+}
+
+/* CREAR CREDENCIAL */
+function generarCodigo(){
+    return Math.floor(10000000 + Math.random() * 90000000);
+}
+
+function loadImageCORS(url){
+    return new Promise((resolve, reject) => {
+        let img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = url;
+    });
+}
+
+function getGatosUsados(){
+    try{
+        return JSON.parse(localStorage.getItem("gatosUsados")) || [];
+    }catch(err){
+        return [];
+    }
+}
+
+function marcarGatoUsado(url){
+    let usados = getGatosUsados();
+    usados.push(url);
+    localStorage.setItem("gatosUsados", JSON.stringify(usados));
+}
+
+async function obtenerGatoAleatorio(){
+    // TheCatAPI sirve las imágenes desde cdn2.thecatapi.com con CORS habilitado,
+    // por lo que el canvas no queda "tainted" al usar toDataURL().
+    // Pedimos un lote grande y descartamos las que ya se usaron en credenciales anteriores.
+    let usados = new Set(getGatosUsados());
+
+    for(let intento = 0; intento < 5; intento++){
+        let res = await fetch("https://api.thecatapi.com/v1/images/search?limit=25");
+        if(!res.ok) throw new Error("Error en la petición");
+        let data = await res.json();
+        if(!data || !data.length) throw new Error("Sin resultados");
+
+        let nuevo = data.find(g => g.url && !usados.has(g.url));
+        if(nuevo){
+            marcarGatoUsado(nuevo.url);
+            return nuevo.url;
+        }
+    }
+
+    // Si tras varios intentos todas las imágenes ya se usaron, reiniciamos el historial
+    // (probablemente ya se agotó el pool visto) y devolvemos una nueva de todas formas.
+    localStorage.removeItem("gatosUsados");
+    let res = await fetch("https://api.thecatapi.com/v1/images/search");
+    if(!res.ok) throw new Error("Error en la petición");
+    let data = await res.json();
+    if(!data || !data.length || !data[0].url) throw new Error("Sin resultados");
+    marcarGatoUsado(data[0].url);
+    return data[0].url;
+}
+
+async function crearCredencial(){
+    let nombre = prompt("Nombre de usuario para la credencial:");
+    if(!nombre) return;
+
+    let codigoGuardado = localStorage.getItem("codigoAcceso");
+    let esPrimeraVez = !codigoGuardado;
+
+    if(codigoGuardado){
+        let ingreso = prompt("Ingresa tu código de acceso existente:");
+        if(ingreso !== codigoGuardado){
+            alert("Código incorrecto, contacta al administrador.");
+            return;
+        }
+    }
+
+    let codigo = generarCodigo();
+    localStorage.setItem("codigoAcceso", codigo);
+
+    if(esPrimeraVez){
+        configurarRecuperacion();
+    }
+
+    let fecha = new Date().toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" });
+    let hora = new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+    let { expiracion, expiracionISO } = calcularExpiracion();
+
+    let img = await generarImagenCredencial(nombre, codigo, fecha, hora, expiracion);
+
+    localStorage.setItem("credencial_" + nombre, JSON.stringify({
+        img: img,
+        codigo: codigo,
+        fecha: fecha,
+        hora: hora,
+        expiracion: expiracion,
+        expiracionISO: expiracionISO
+    }));
+
+    mostrarResultadoCredencial(nombre, { img: img, codigo: codigo, fecha: fecha, hora: hora, expiracion: expiracion, expiracionISO: expiracionISO }, `¡Gracias por unirte a MichiHub, ${nombre}! 🐾`);
+}
+
+/* GENERA LA IMAGEN (CANVAS) DE UNA CREDENCIAL, SIN GUARDARLA */
+async function generarImagenCredencial(nombre, codigo, fecha, hora, expiracion){
+    let canvas = document.createElement("canvas");
+    canvas.width = 400;
+    canvas.height = 220;
+    let ctx = canvas.getContext("2d");
+
+    // Fondo base (por si la imagen falla)
+    ctx.fillStyle = "#f4f0ea";
+    ctx.fillRect(0, 0, 400, 220);
+
+    // Imagen de gato de fondo (cover-fit)
+    try{
+        let urlGato = await obtenerGatoAleatorio();
+        let imgGato = await loadImageCORS(urlGato);
+
+        let scale = Math.max(400 / imgGato.width, 220 / imgGato.height);
+        let w = imgGato.width * scale;
+        let h = imgGato.height * scale;
+        let x = (400 - w) / 2;
+        let y = (220 - h) / 2;
+        ctx.drawImage(imgGato, x, y, w, h);
+    }catch(err){
+        // si falla, se queda el fondo base
+    }
+
+    // Overlay oscuro para que el texto se lea bien
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    ctx.fillRect(0, 0, 400, 220);
+
+    // Borde decorativo
+    ctx.strokeStyle = "#b09e8d";
+    ctx.lineWidth = 5;
+    ctx.strokeRect(10, 10, 380, 200);
+
+    // Texto
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 20px 'Playfair Display', serif";
+    ctx.fillText("MichiHub ID", 125, 42);
+
+    ctx.font = "16px Arial";
+    ctx.fillText("Nombre: " + nombre, 30, 80);
+    ctx.fillText("Código: " + codigo, 30, 104);
+    ctx.font = "12px Arial";
+    ctx.fillText("Creado: " + fecha + " - " + hora, 30, 126);
+    if(expiracion) ctx.fillText("Válido hasta: " + expiracion, 30, 144);
+    ctx.font = "italic 11px Arial";
+    ctx.fillText("¡Gracias por unirte a MichiHub! 🐾", 30, 165);
+
+    let img;
+    try{
+        img = canvas.toDataURL();
+    }catch(err){
+        // Si el canvas queda "tainted" por CORS, se redibuja todo sin la imagen de gato
+        // para no perder la credencial.
+        ctx.clearRect(0, 0, 400, 220);
+        ctx.fillStyle = "#f4f0ea";
+        ctx.fillRect(0, 0, 400, 220);
+        ctx.fillStyle = "rgba(0,0,0,0.45)";
+        ctx.fillRect(0, 0, 400, 220);
+        ctx.strokeStyle = "#b09e8d";
+        ctx.lineWidth = 5;
+        ctx.strokeRect(10, 10, 380, 200);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 20px 'Playfair Display', serif";
+        ctx.fillText("MichiHub ID", 125, 42);
+        ctx.font = "16px Arial";
+        ctx.fillText("Nombre: " + nombre, 30, 80);
+        ctx.fillText("Código: " + codigo, 30, 104);
+        ctx.font = "12px Arial";
+        ctx.fillText("Creado: " + fecha + " - " + hora, 30, 126);
+        if(expiracion) ctx.fillText("Válido hasta: " + expiracion, 30, 144);
+        ctx.font = "italic 11px Arial";
+        ctx.fillText("¡Gracias por unirte a MichiHub! 🐾", 30, 165);
+        img = canvas.toDataURL();
+    }
+
+    return img;
+}
+
+/* BUSCADOR DE IMAGENES */
+// Wikimedia Commons hace coincidencia literal de texto (no traduce ni entiende
+// sinónimos), y su catálogo tiene mucho contenido en inglés. Por eso traducimos
+// la consulta antes de buscar.
+async function traducirConsulta(texto){
+    try{
+        let res = await fetchConTimeout(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(texto)}&langpair=es|en`, {}, 6000);
+        if(!res.ok) return texto;
+        let data = await res.json();
+        let traducido = data?.responseData?.translatedText || texto;
+        // MyMemory devuelve un texto de advertencia (no una traducción real) cuando
+        // se agota la cuota gratuita diaria. Si pasa eso, usamos el texto original.
+        if(data?.responseStatus !== 200 || /MYMEMORY WARNING|QUERY LENGTH LIMIT|INVALID/i.test(traducido)){
+            return texto;
+        }
+        return traducido;
+    }catch(err){
+        return texto; // si falla la traducción, se busca con el texto original
+    }
+}
+
+async function fetchConTimeout(url, opciones = {}, ms = 10000){
+    let controlador = new AbortController();
+    let timeoutId = setTimeout(() => controlador.abort(), ms);
+    try{
+        return await fetch(url, { ...opciones, signal: controlador.signal });
+    }catch(err){
+        if(err.name === "AbortError"){
+            throw new Error("tiempo de espera agotado (revisa tu conexión o si algo está bloqueando la petición)");
+        }
+        throw err;
+    }finally{
+        clearTimeout(timeoutId);
+    }
+}
+
+async function buscarEnOpenverse(q){
+    let url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrlimit=12&gsrsearch=${encodeURIComponent("filetype:bitmap " + q)}&prop=imageinfo&iiprop=url&iiurlwidth=400&format=json&origin=*`;
+    let res = await fetchConTimeout(url);
+    if(!res.ok) throw new Error(`Wikimedia respondió ${res.status}: ${await res.text()}`);
+    let data = await res.json();
+    let pages = data?.query?.pages;
+    if(!pages) return { results: [] };
+    let results = Object.values(pages)
+        .filter(p => p.imageinfo && p.imageinfo[0])
+        .map(p => ({
+            title: p.title.replace(/^File:/, "").replace(/\.[a-zA-Z0-9]+$/, ""),
+            url: p.imageinfo[0].url,
+            thumbnail: p.imageinfo[0].thumburl || p.imageinfo[0].url
+        }));
+    return { results };
+}
+
+async function buscarImagenes(){
+    let query = document.getElementById("imgQueryInput").value.trim();
+    let status = document.getElementById("img-search-status");
+    let results = document.getElementById("img-search-results");
+
+    if(!query){
+        status.innerText = "Escribe algo para buscar.";
+        results.innerHTML = "";
+        return;
+    }
+
+    status.innerText = "Buscando...";
+    results.innerHTML = "";
+
+    try{
+        let queryEn = await traducirConsulta(query);
+        let data = await buscarEnOpenverse(queryEn);
+
+        // Si la traducción falló silenciosamente (o simplemente no hubo resultados
+        // con el término en inglés), reintentamos con el texto original.
+        if((!data.results || data.results.length === 0) && queryEn !== query){
+            data = await buscarEnOpenverse(query);
+        }
+
+        if(!data.results || data.results.length === 0){
+            status.innerText = "No se encontraron imágenes.";
+            return;
+        }
+
+        status.innerText = "";
+        data.results.forEach(img => {
+            let div = document.createElement("div");
+            div.className = "img-result";
+            div.innerHTML = `<img src="${img.thumbnail || img.url}" alt="${(img.title || query).replace(/"/g,'')}" loading="lazy">`;
+            div.querySelector("img").onclick = () => window.open(img.url, "_blank");
+
+            let btnDescarga = document.createElement("button");
+            btnDescarga.className = "img-download";
+            btnDescarga.innerText = "⬇";
+            btnDescarga.onclick = (e) => {
+                e.stopPropagation();
+                descargarImagen(img.url, img.title || query);
+            };
+            div.appendChild(btnDescarga);
+
+            results.appendChild(div);
+        });
+    }catch(err){
+        console.error("Error buscando en Openverse:", err);
+        status.innerText = "No se pudo buscar imágenes: " + err.message;
+    }
+}
+
+async function descargarImagen(url, nombre){
+    try{
+        let res = await fetch(url);
+        let blob = await res.blob();
+        let ext = (blob.type.split("/")[1] || "jpg").split("+")[0];
+        let safeName = (nombre || "imagen").replace(/[^a-z0-9_\- ]/gi, "").trim() || "imagen";
+
+        let objUrl = URL.createObjectURL(blob);
+        let a = document.createElement("a");
+        a.href = objUrl;
+        a.download = `${safeName}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(objUrl);
+    }catch(err){
+        window.open(url, "_blank");
+    }
+}
+
+/* TICTACTOE */
+let board = ["","","","","","","","",""];
+let player = "X";
+let gameActive = true;
+
+function initTicTacToe(){
+    let b = document.getElementById("board");
+    b.innerHTML = "";
+    board = ["","","","","","","","",""];
+    player = "X";
+    gameActive = true;
+    document.getElementById("tictac-status").innerText = "Turno: X";
+
+    for(let i = 0; i < 9; i++){
+        let c = document.createElement("div");
+        c.className = "cell";
+        c.onclick = () => move(c, i);
+        b.appendChild(c);
+    }
+}
+
+function move(c, i){
+    if(board[i] !== "" || !gameActive) return;
+    board[i] = player;
+    c.innerText = player;
+
+    if(checkWin()){
+        document.getElementById("tictac-status").innerText = `¡Ganador: ${player}!`;
+        gameActive = false;
+        setTimeout(initTicTacToe, 1800);
+        return;
+    }
+
+    if(!board.includes("")){
+        document.getElementById("tictac-status").innerText = "¡Empate!";
+        gameActive = false;
+        setTimeout(initTicTacToe, 1800);
+        return;
+    }
+
+    player = player === "X" ? "O" : "X";
+    document.getElementById("tictac-status").innerText = `Turno: ${player}`;
+}
+
+function checkWin(){
+    const wins = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+    ];
+    return wins.some(w => w.every(index => board[index] === player));
+}
+
+initTicTacToe();
+
+/* MEMORY */
+const emojis = ['😸','👻','☕','🎮','🍕','🎧','🌙','💻'];
+let hasFlippedCard = false;
+let lockBoard = false;
+let firstCard, secondCard;
+
+function initMemory(){
+    let board = document.getElementById("memory-board");
+    board.innerHTML = "";
+    hasFlippedCard = false;
+    lockBoard = false;
+    firstCard = null;
+    secondCard = null;
+
+    let cards = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
+
+    cards.forEach(e => {
+        let c = document.createElement("div");
+        c.className = "memory-card";
+        c.dataset.emoji = e;
+        c.onclick = function(){ flipCard(this); };
+        board.appendChild(c);
+    });
+}
+
+function flipCard(card){
+    if(lockBoard || card === firstCard || card.classList.contains("flipped")) return;
+
+    card.classList.add("flipped");
+    card.innerText = card.dataset.emoji;
+
+    if(!hasFlippedCard){
+        hasFlippedCard = true;
+        firstCard = card;
+        return;
+    }
+
+    secondCard = card;
+    checkForMatch();
+}
+
+function checkForMatch(){
+    let isMatch = firstCard.dataset.emoji === secondCard.dataset.emoji;
+    isMatch ? disableCards() : unflipCards();
+}
+
+function disableCards(){
+    resetBoard();
+
+    let cartas = document.querySelectorAll(".memory-card");
+    let completo = [...cartas].every(c => c.classList.contains("flipped"));
+    if(completo){
+        setTimeout(initMemory, 1500);
+    }
+}
+
+function unflipCards(){
+    lockBoard = true;
+    setTimeout(() => {
+        firstCard.classList.remove("flipped");
+        secondCard.classList.remove("flipped");
+        firstCard.innerText = "";
+        secondCard.innerText = "";
+        resetBoard();
+    }, 1000);
+}
+
+function resetBoard(){
+    [hasFlippedCard, lockBoard] = [false, false];
+    [firstCard, secondCard] = [null, null];
+}
+
+initMemory();
+
+</script>
+
+</body>
+</html>

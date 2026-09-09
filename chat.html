@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MichiHub | Chat</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Playfair+Display:ital@1&display=swap');
+
+:root {
+    --bg-base: #f4f0ea;
+    --text-main: #4a4238;
+    --card-bg: rgba(255, 255, 255, 0.6);
+    --accent: #b09e8d;
+    --shadow: rgba(138, 125, 110, 0.15);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+    background-color:var(--bg-base);
+    background-image:url('https://www.transparenttextures.com/patterns/cream-paper.png');
+    color:var(--text-main);
+    font-family:'Nunito',sans-serif;
+    min-height:100vh;
+    padding:30px 20px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+}
+
+/* HEADER */
+header{
+    width:100%;
+    max-width:600px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    margin-bottom:20px;
+    gap:20px;
+}
+
+.logo-area h1{
+    font-family:'Playfair Display',serif;
+    font-size:2.5rem;
+}
+
+.link-recuperar{display:block;text-align:center;margin-top:12px;font-size:0.85rem;color:var(--text-main);opacity:0.7;text-decoration:underline;cursor:pointer}
+
+/* MENU DE NAVEGACION */
+nav.menu-principal{
+    width:100%;
+    max-width:600px;
+    display:flex;
+    justify-content:center;
+    gap:6px;
+    margin-bottom:20px;
+    flex-wrap:nowrap;
+}
+nav.menu-principal a{
+    text-decoration:none;
+    color:var(--text-main);
+    background:var(--card-bg);
+    padding:6px 4px;
+    border-radius:16px;
+    font-weight:bold;
+    box-shadow:0 4px 10px var(--shadow);
+    font-size:0.68rem;
+    white-space:nowrap;
+    flex:1;
+    text-align:center;
+}
+nav.menu-principal a.activo{
+    background:var(--accent);
+    color:white;
+}
+
+/* MAIN */
+main{
+    width:100%;
+    max-width:600px;
+    display:flex;
+    flex-direction:column;
+    gap:30px;
+}
+
+.card{
+    background:var(--card-bg);
+    border-radius:20px;
+    padding:30px;
+    box-shadow:0 8px 25px var(--shadow);
+    width:100%;
+}
+
+.card-title{
+    font-family:'Playfair Display',serif;
+    margin-bottom:20px;
+}
+
+/* CHAT */
+/* ===== CHAT (mismo estilo crema que el resto de MichiHub) ===== */
+.chat-dark-wrapper{
+    padding:4px;
+}
+.chat-dark-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    color:var(--text-main);
+    margin-bottom:12px;
+    padding:0 4px;
+}
+.chat-dark-header .titulo{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-weight:bold;
+    font-size:1.05rem;
+    font-family:'Playfair Display',serif;
+}
+.chat-dark-header .en-linea-dark{
+    font-size:0.75rem;
+    color:#5c8a5c;
+    opacity:0.9;
+}
+
+#chat-mensajes{
+    height:420px;
+    overflow-y:auto;
+    padding:6px 2px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+.msg-burbuja{
+    display:flex;
+    gap:8px;
+    align-items:flex-start;
+}
+.msg-avatar{
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:white;
+    font-weight:bold;
+    font-size:0.9rem;
+    position:relative;
+    overflow:hidden;
+}
+.msg-avatar img{ width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.msg-avatar .dot-online{
+    position:absolute;
+    bottom:-1px;
+    right:-1px;
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    background:#3ddc61;
+    border:2px solid var(--bg-base);
+    animation:parpadeo-led 1.6s ease-in-out infinite;
+}
+@keyframes parpadeo-led{
+    0%, 100%{ opacity:1; box-shadow:0 0 4px 1px rgba(61,220,97,0.8); }
+    50%{ opacity:0.35; box-shadow:0 0 1px 0px rgba(61,220,97,0.3); }
+}
+.msg-contenido{
+    background:rgba(255,255,255,0.5);
+    border-left:3px solid var(--user-color, var(--accent));
+    border-radius:0 12px 12px 12px;
+    padding:8px 12px;
+    max-width:82%;
+}
+.msg-cabecera{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    margin-bottom:2px;
+    flex-wrap:wrap;
+}
+.msg-nombre{
+    font-weight:bold;
+    font-size:0.85rem;
+    color:var(--user-color, var(--text-main));
+}
+.msg-badge{
+    font-size:0.65rem;
+    background:rgba(74,66,56,0.1);
+    color:var(--text-main);
+    padding:1px 7px;
+    border-radius:8px;
+}
+.msg-texto{
+    color:var(--text-main);
+    font-size:0.9rem;
+    word-break:break-word;
+}
+.msg-hora{
+    color:var(--text-main);
+    opacity:0.55;
+    font-size:0.65rem;
+    text-align:right;
+    margin-top:3px;
+}
+
+/* Composer estilo pill, tema crema */
+#form-chat{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+#form-chat .fila-botones{ display:flex; gap:8px; justify-content:center; }
+#form-chat .fila-texto{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    width:100%;
+    background:rgba(255,255,255,0.6);
+    border-radius:30px;
+    padding:6px 6px 6px 16px;
+}
+#btn-enviar-chat{
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    border:none;
+    background:var(--accent);
+    color:white;
+    cursor:pointer;
+    flex-shrink:0;
+    font-size:1.1rem;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+#btn-adjuntar-chat, #btn-ubicacion-chat, #btn-evento-chat{
+    padding:6px 10px;
+    border:none;
+    border-radius:10px;
+    background:rgba(255,255,255,0.6);
+    color:var(--text-main);
+    cursor:pointer;
+    font-size:1rem;
+}
+#input-chat-texto{
+    flex:1;
+    min-width:0;
+    padding:8px 0;
+    border:none;
+    outline:none;
+    background:transparent;
+    color:var(--text-main);
+    font-size:0.9rem;
+}
+#input-chat-texto::placeholder{ color:rgba(74,66,56,0.5); }
+.media-chat{ max-width:100%; border-radius:10px; margin-top:6px; display:block; }
+
+#btn-notificaciones{
+    display:none;
+    border:none;
+    background:var(--accent);
+    color:white;
+    padding:8px 18px;
+    border-radius:20px;
+    cursor:pointer;
+    font-weight:bold;
+    margin-top:10px;
+}
+
+/* PANTALLA DE INICIO DE SESIÓN OBLIGATORIO */
+#login-gate{
+    position:fixed;
+    inset:0;
+    background-color:var(--bg-base);
+    background-image:url('https://www.transparenttextures.com/patterns/cream-paper.png');
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    z-index:9000;
+    text-align:center;
+    padding:20px;
+}
+#login-gate.activo{ display:flex; }
+#login-gate h1{
+    font-family:'Playfair Display',serif;
+    font-size:2.5rem;
+    color:var(--text-main);
+}
+#login-gate p{
+    color:var(--text-main);
+    opacity:0.8;
+    max-width:320px;
+}
+
+
+#loading-screen{
+    position:fixed;
+    inset:0;
+    background-color:var(--bg-base);
+    background-image:url('https://www.transparenttextures.com/patterns/cream-paper.png');
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    z-index:9999;
+    transition:opacity 0.5s ease;
+}
+#loading-screen.fade-out{
+    opacity:0;
+    pointer-events:none;
+}
+#loading-screen h1{
+    font-family:'Playfair Display',serif;
+    font-size:2.5rem;
+    color:var(--text-main);
+}
+.loading-bar-track{
+    width:200px;
+    height:8px;
+    background:rgba(74,66,56,0.15);
+    border-radius:10px;
+    overflow:hidden;
+}
+.loading-bar-fill{
+    height:100%;
+    width:40%;
+    background:var(--accent);
+    border-radius:10px;
+    animation:cargando 1.2s ease-in-out infinite;
+}
+@keyframes cargando{
+    0%{ transform:translateX(-100%); }
+    100%{ transform:translateX(350%); }
+}
+</style>
+</head>
+
+<body>
+
+<div id="loading-screen">
+<h1>MichiHub</h1>
+<div class="loading-bar-track"><div class="loading-bar-fill"></div></div>
+</div>
+
+
+<div id="login-gate">
+<h1>MichiHub</h1>
+<p>Inicia sesión con Google para entrar al lounge.</p>
+<div id="g_id_onload"
+     data-client_id="180603573320-02mmvr7iafpop549a33582dpqjkppm83.apps.googleusercontent.com"
+     data-callback="manejarLoginGoogle"
+     data-auto_prompt="false">
+</div>
+<div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="outline"></div>
+</div>
+
+<audio id="bg-music-sync" loop style="display:none;">
+<source src="https://stream.zeno.fm/f3wvbbqmdg8uv" type="audio/mpeg">
+</audio>
+
+<header>
+<div class="logo-area">
+<h1>MichiHub</h1>
+<p>Chat del Lounge</p>
+</div>
+
+<span id="link-cerrar-sesion" class="link-recuperar" style="display:none;">Cerrar sesión</span>
+</header>
+
+<nav class="menu-principal">
+<a href="index.html">🏠 Inicio</a>
+<a href="chat.html" class="activo">💬 Chat</a>
+<a href="Radio.html">📻 Radio</a>
+<a href="documentos.html">📄 Docs</a>
+<a href="nube.html">☁️ Nube</a>
+</nav>
+
+<main>
+
+<div class="card">
+<div class="chat-dark-wrapper">
+<div class="chat-dark-header">
+<div class="titulo">💬 Chat del Lounge</div>
+<div class="en-linea-dark" id="usuarios-en-linea">🟢 0 conectados</div>
+</div>
+<div style="position:relative;">
+<div id="chat-mensajes"></div>
+<div id="cartel-chat-cerrado" style="display:none;position:absolute;inset:0;background:rgba(244,240,234,0.97);border-radius:10px;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;">
+<p style="font-weight:bold;font-size:1.1rem;margin-bottom:8px;color:var(--text-main);">🔒 Por el momento no disponible</p>
+<p style="font-size:0.9rem;color:var(--text-main);opacity:0.75;">Para soporte, escribe a:<br><strong>michihub@hotmail.com</strong></p>
+</div>
+</div>
+<form id="form-chat" onsubmit="return false;">
+<input type="file" id="input-media-chat" accept="image/*,video/*,audio/*" style="display:none;">
+<div class="fila-botones">
+<button type="button" id="btn-adjuntar-chat" title="Adjuntar foto, video o audio">📎</button>
+<button type="button" id="btn-ubicacion-chat" title="Compartir ubicación">📍</button>
+<button type="button" id="btn-evento-chat" title="Compartir evento">📅</button>
+</div>
+<div class="fila-texto">
+<input id="input-chat-texto" type="text" placeholder="Escribe... o @menciona">
+<button id="btn-enviar-chat">➤</button>
+</div>
+</form>
+</div>
+<button id="btn-notificaciones">🔔 Activar notificaciones</button>
+</div>
+
+</main>
+
+<script>
+/* Retomar música en segundo plano si estaba sonando en la página anterior */
+(function retomarMusicaSiEstabaSonando(){
+    const musicaSync = document.getElementById("bg-music-sync");
+    if(localStorage.getItem("michihubMusicaEstado") === "reproduciendo"){
+        musicaSync.play().catch(() => {
+            // El navegador bloqueó el autoplay; no hay nada más que hacer aquí sin interacción del usuario
+        });
+    }
+})();
+
+/* LOGIN CON GOOGLE (igual que en index.html, para mantener la sesión) */
+function decodificarJWT(token){
+    let payload = token.split(".")[1];
+    let json = decodeURIComponent(atob(payload).split("").map(c =>
+        "%" + c.charCodeAt(0).toString(16).padStart(2, "0")
+    ).join(""));
+    return JSON.parse(json);
+}
+
+function manejarLoginGoogle(response){
+    let datosUsuario = decodificarJWT(response.credential);
+    let nombre = datosUsuario.name || datosUsuario.email;
+
+    localStorage.setItem("michihubLogueado", "true");
+    localStorage.setItem("michihubNombre", nombre);
+    localStorage.setItem("michihubEmail", datosUsuario.email || "");
+    localStorage.setItem("michihubFoto", datosUsuario.picture || "");
+
+    document.getElementById("login-gate").classList.remove("activo");
+    document.getElementById("link-cerrar-sesion").style.display = "inline-block";
+}
+
+function cerrarSesion(){
+    localStorage.removeItem("michihubLogueado");
+    localStorage.removeItem("michihubNombre");
+    location.reload();
+}
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("link-cerrar-sesion").addEventListener("click", cerrarSesion);
+});
+
+/* Verifica la sesión al entrar; si no hay login, bloquea el acceso */
+(function verificarSesionObligatoria(){
+    let logueado = localStorage.getItem("michihubLogueado") === "true";
+    if(!logueado){
+        document.getElementById("login-gate").classList.add("activo");
+    }else{
+        document.getElementById("link-cerrar-sesion").style.display = "inline-block";
+    }
+})();
+
+/* PWA: manifest + ícono + service worker (para que Chrome ofrezca instalar desde cualquier página) */
+function configurarPWA(){
+    let linkApple = document.createElement("link");
+    linkApple.rel = "apple-touch-icon";
+    linkApple.href = "icon-192.png";
+    document.head.appendChild(linkApple);
+
+    let metaTheme = document.createElement("meta");
+    metaTheme.name = "theme-color";
+    metaTheme.content = "#b09e8d";
+    document.head.appendChild(metaTheme);
+
+    let linkManifest = document.createElement("link");
+    linkManifest.rel = "manifest";
+    linkManifest.href = "manifest.json";
+    document.head.appendChild(linkManifest);
+
+    if("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")){
+        navigator.serviceWorker.register("service-worker.js")
+            .catch(err => console.log("No se pudo registrar el service worker:", err));
+    }
+}
+configurarPWA();
+</script>
+
+<!-- CHAT: SDK de Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+    const SUPABASE_URL = "https://veihvfcnczawoycphhga.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_DpvZMjPgjcfxCpK5OTJRHw_ah2emZkb";
+    const supabaseChat = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const mensajesDiv = document.getElementById("chat-mensajes");
+    const inputTexto = document.getElementById("input-chat-texto");
+    const btnEnviar = document.getElementById("btn-enviar-chat");
+    const inputMedia = document.getElementById("input-media-chat");
+    const btnAdjuntar = document.getElementById("btn-adjuntar-chat");
+    const btnUbicacion = document.getElementById("btn-ubicacion-chat");
+    const btnEvento = document.getElementById("btn-evento-chat");
+
+    let usuariosConectadosActual = [];
+    const ADMIN_NOMBRE_VISIBLE = "Ángel Said";
+    function esNombreAdmin(nombre){
+        return nombre === ADMIN_NOMBRE_VISIBLE || (nombre && nombre.startsWith(ADMIN_NOMBRE_VISIBLE));
+    }
+
+    function obtenerNombreUsuario(){
+        return localStorage.getItem("michihubNombre") || "Anónimo";
+    }
+
+    function obtenerFotoUsuario(){
+        return localStorage.getItem("michihubFoto") || "";
+    }
+
+    /* ===== BLOQUEO PERSONAL (solo afecta lo que TÚ ves, no es un baneo global) ===== */
+    function obtenerBloqueados(){
+        try{
+            return JSON.parse(localStorage.getItem("michihubBloqueados") || "[]");
+        }catch(e){ return []; }
+    }
+
+    function esBloqueadoPorMi(usuario){
+        return obtenerBloqueados().includes(usuario);
+    }
+
+    function bloquearUsuario(usuario){
+        const lista = obtenerBloqueados();
+        if(!lista.includes(usuario)){
+            lista.push(usuario);
+            localStorage.setItem("michihubBloqueados", JSON.stringify(lista));
+        }
+    }
+
+    function desbloquearUsuario(usuario){
+        const lista = obtenerBloqueados().filter(u => u !== usuario);
+        localStorage.setItem("michihubBloqueados", JSON.stringify(lista));
+    }
+
+    /* ===== ADMINISTRACIÓN (CEO de Michihub) ===== */
+    const ADMIN_EMAIL = "cruzangelsaid34@gmail.com";
+    const NOMBRE_SISTEMA = "🛡️ Michihub Admin";
+
+    function esAdmin(){
+        return localStorage.getItem("michihubEmail") === ADMIN_EMAIL;
+    }
+
+    async function publicarMensajeSistema(texto){
+        await supabaseChat.from("mensajes").insert([{ usuario: NOMBRE_SISTEMA, texto }]);
+    }
+
+    // Revisa si el usuario actual está silenciado o baneado
+    async function obtenerEstadoModeracion(usuario){
+        const { data, error } = await supabaseChat
+            .from("moderacion")
+            .select("*")
+            .eq("usuario", usuario)
+            .maybeSingle();
+        if(error || !data) return { estado: "activo" };
+
+        // Si el silencio ya venció, se trata como activo
+        if(data.estado === "silenciado" && data.hasta && new Date(data.hasta) < new Date()){
+            return { estado: "activo" };
+        }
+        return data;
+    }
+
+    async function obtenerChatCerrado(){
+        const { data, error } = await supabaseChat
+            .from("configuracion_chat")
+            .select("cerrado")
+            .eq("id", 1)
+            .maybeSingle();
+        if(error || !data) return false;
+        return data.cerrado;
+    }
+
+    /* CARTEL DE CHAT CERRADO (visible para todos menos el admin) */
+    const cartelCerrado = document.getElementById("cartel-chat-cerrado");
+
+    function mostrarUOcultarCartel(cerrado){
+        if(cerrado && !esAdmin()){
+            cartelCerrado.style.display = "flex";
+        }else{
+            cartelCerrado.style.display = "none";
+        }
+    }
+
+    async function actualizarCartelCerrado(){
+        const cerrado = await obtenerChatCerrado();
+        mostrarUOcultarCartel(cerrado);
+    }
+
+    // Revisar el estado al cargar la página
+    actualizarCartelCerrado();
+
+    // Actualizar en tiempo real si el admin cierra/abre el chat mientras estás viéndolo
+    supabaseChat
+        .channel("config-chat-realtime")
+        .on(
+            "postgres_changes",
+            { event: "UPDATE", schema: "public", table: "configuracion_chat" },
+            (payload) => mostrarUOcultarCartel(payload.new.cerrado)
+        )
+        .subscribe();
+
+    // Ejecuta un comando de administrador. Devuelve true si el texto era un comando (aunque falle).
+    async function ejecutarComandoAdmin(texto){
+        const partes = texto.trim().split(/\s+/);
+        const comando = partes[0].toLowerCase();
+
+        if(comando === "/eliminar"){
+            const usuarioObjetivo = partes.slice(1).join(" ");
+            if(!usuarioObjetivo) { await publicarMensajeSistema("Uso: /eliminar NombreDeUsuario"); return true; }
+
+            const { data } = await supabaseChat
+                .from("mensajes")
+                .select("id")
+                .eq("usuario", usuarioObjetivo)
+                .order("created_at", { ascending: false })
+                .limit(1);
+
+            if(data && data.length){
+                await supabaseChat.from("mensajes").delete().eq("id", data[0].id);
+                await publicarMensajeSistema(`🗑️ Se eliminó el último mensaje de ${usuarioObjetivo}.`);
+            }else{
+                await publicarMensajeSistema(`No se encontró un mensaje reciente de ${usuarioObjetivo}.`);
+            }
+            return true;
+        }
+
+        if(comando === "/advertencia"){
+            const usuarioObjetivo = partes[1];
+            const motivo = partes.slice(2).join(" ") || "Comportamiento inapropiado";
+            if(!usuarioObjetivo){ await publicarMensajeSistema("Uso: /advertencia NombreUsuario motivo"); return true; }
+            await publicarMensajeSistema(`⚠️ Advertencia para ${usuarioObjetivo}: ${motivo}`);
+            return true;
+        }
+
+        if(comando === "/desilenciar"){
+            const usuarioObjetivo = partes.slice(1).join(" ");
+            if(!usuarioObjetivo){ await publicarMensajeSistema("Uso: /desilenciar NombreUsuario"); return true; }
+            await supabaseChat.from("moderacion").upsert({ usuario: usuarioObjetivo, estado: "activo", hasta: null });
+            await publicarMensajeSistema(`🔊 ${usuarioObjetivo} ya puede volver a escribir.`);
+            return true;
+        }
+
+        if(comando === "/limpiar"){
+            await supabaseChat.from("mensajes").delete().neq("id", 0);
+            await publicarMensajeSistema("🧹 El chat fue limpiado por el administrador.");
+            return true;
+        }
+
+        if(comando === "/eliminarultimos"){
+            const usuarioObjetivo = partes[1];
+            const cantidad = parseInt(partes[2]) || 1;
+            if(!usuarioObjetivo){ await publicarMensajeSistema("Uso: /eliminarultimos NombreUsuario cantidad"); return true; }
+
+            const { data } = await supabaseChat
+                .from("mensajes")
+                .select("id")
+                .eq("usuario", usuarioObjetivo)
+                .order("created_at", { ascending: false })
+                .limit(cantidad);
+
+            if(data && data.length){
+                const ids = data.map(m => m.id);
+                await supabaseChat.from("mensajes").delete().in("id", ids);
+                await publicarMensajeSistema(`🗑️ Se eliminaron ${data.length} mensaje(s) de ${usuarioObjetivo}.`);
+            }else{
+                await publicarMensajeSistema(`No se encontraron mensajes de ${usuarioObjetivo}.`);
+            }
+            return true;
+        }
+
+        if(comando === "/anuncio"){
+            const texto = partes.slice(1).join(" ");
+            if(!texto){ await publicarMensajeSistema("Uso: /anuncio Tu mensaje aquí"); return true; }
+            await supabaseChat.from("mensajes").insert([{ usuario: "📢 ANUNCIO", texto }]);
+            return true;
+        }
+
+        if(comando === "/silenciar"){
+            const usuarioObjetivo = partes[1];
+            const minutos = parseInt(partes[2]) || 10;
+            if(!usuarioObjetivo){ await publicarMensajeSistema("Uso: /silenciar NombreUsuario minutos"); return true; }
+            const hasta = new Date(Date.now() + minutos * 60000).toISOString();
+            await supabaseChat.from("moderacion").upsert({ usuario: usuarioObjetivo, estado: "silenciado", hasta });
+            await publicarMensajeSistema(`🔇 ${usuarioObjetivo} fue silenciado por ${minutos} minutos.`);
+            return true;
+        }
+
+        if(comando === "/banear"){
+            const usuarioObjetivo = partes.slice(1).join(" ");
+            if(!usuarioObjetivo){ await publicarMensajeSistema("Uso: /banear NombreUsuario"); return true; }
+            await supabaseChat.from("moderacion").upsert({ usuario: usuarioObjetivo, estado: "baneado", hasta: null });
+            await publicarMensajeSistema(`🚫 ${usuarioObjetivo} fue baneado del chat.`);
+            return true;
+        }
+
+        if(comando === "/desbanear"){
+            const usuarioObjetivo = partes.slice(1).join(" ");
+            if(!usuarioObjetivo){ await publicarMensajeSistema("Uso: /desbanear NombreUsuario"); return true; }
+            await supabaseChat.from("moderacion").upsert({ usuario: usuarioObjetivo, estado: "activo", hasta: null });
+            await publicarMensajeSistema(`✅ ${usuarioObjetivo} fue desbaneado.`);
+            return true;
+        }
+
+        if(comando === "/cerrarchat"){
+            await supabaseChat.from("configuracion_chat").update({ cerrado: true }).eq("id", 1);
+            await publicarMensajeSistema("🔒 El chat fue cerrado por el administrador.");
+            return true;
+        }
+
+        if(comando === "/abrirchat"){
+            await supabaseChat.from("configuracion_chat").update({ cerrado: false }).eq("id", 1);
+            await publicarMensajeSistema("🔓 El chat fue reabierto por el administrador.");
+            return true;
+        }
+
+        if(comando === "/cerrarprivado"){
+            await supabaseChat.from("configuracion_secciones").update({ cerrado: true }).eq("seccion", "privado");
+            await publicarMensajeSistema("🔒 La sección Privado fue cerrada por el administrador.");
+            return true;
+        }
+
+        if(comando === "/abrirprivado"){
+            await supabaseChat.from("configuracion_secciones").update({ cerrado: false }).eq("seccion", "privado");
+            await publicarMensajeSistema("🔓 La sección Privado fue reabierta por el administrador.");
+            return true;
+        }
+
+        if(comando === "/cerrarnube"){
+            await supabaseChat.from("configuracion_secciones").update({ cerrado: true }).eq("seccion", "nube");
+            await publicarMensajeSistema("🔒 La sección Nube fue cerrada por el administrador.");
+            return true;
+        }
+
+        if(comando === "/abrirnube"){
+            await supabaseChat.from("configuracion_secciones").update({ cerrado: false }).eq("seccion", "nube");
+            await publicarMensajeSistema("🔓 La sección Nube fue reabierta por el administrador.");
+            return true;
+        }
+
+        if(comando === "/cerrardocumentos"){
+            await supabaseChat.from("configuracion_secciones").update({ cerrado: true }).eq("seccion", "documentos");
+            await publicarMensajeSistema("🔒 La sección Documentos fue cerrada por el administrador.");
+            return true;
+        }
+
+        if(comando === "/abrirdocumentos"){
+            await supabaseChat.from("configuracion_secciones").update({ cerrado: false }).eq("seccion", "documentos");
+            await publicarMensajeSistema("🔓 La sección Documentos fue reabierta por el administrador.");
+            return true;
+        }
+
+        return false; // no era un comando de admin reconocido
+    }
+
+    /* NOTIFICACIONES */
+    const btnNotificaciones = document.getElementById("btn-notificaciones");
+
+    function actualizarBotonNotificaciones(){
+        if(!("Notification" in window)){
+            btnNotificaciones.style.display = "none";
+            return;
+        }
+        if(Notification.permission === "granted"){
+            btnNotificaciones.style.display = "none";
+        }else if(Notification.permission === "default"){
+            btnNotificaciones.style.display = "inline-block";
+        }else{
+            btnNotificaciones.style.display = "none"; // denegado: no insistir
+        }
+    }
+
+    btnNotificaciones.addEventListener("click", async () => {
+        if(!("Notification" in window)) return;
+        await Notification.requestPermission();
+        actualizarBotonNotificaciones();
+    });
+
+    actualizarBotonNotificaciones();
+
+    const SONIDO_MEOW_URL = "https://opengameart.org/sites/default/files/kitten_mew-1.wav";
+    const sonidoMeow = new Audio(SONIDO_MEOW_URL);
+
+    function reproducirMeow(){
+        try{
+            sonidoMeow.currentTime = 0;
+            sonidoMeow.play().catch(() => {}); // el navegador puede bloquear autoplay sin interacción previa
+        }catch(err){ /* silencioso */ }
+    }
+
+    function fueMencionado(texto, nombreUsuario){
+        if(!nombreUsuario) return false;
+        // Compara la primera palabra del nombre (ej. "Ángel" de "Ángel Said Cruz Muñoz"),
+        // sin distinguir mayúsculas/minúsculas ni acentos, para que "@angel" también cuente.
+        let primerNombre = nombreUsuario.trim().split(/\s+/)[0];
+        let normalizar = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        let patron = new RegExp("@" + normalizar(primerNombre).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+        return patron.test(normalizar(texto));
+    }
+
+    function notificarMensajeNuevo(msg){
+        if(!("Notification" in window)) return;
+        if(Notification.permission !== "granted") return;
+        if(document.visibilityState === "visible") return; // app abierta: no molestar
+        if(msg.usuario === obtenerNombreUsuario()) return; // no notificar tu propio mensaje
+
+        let mencionado = fueMencionado(msg.texto, obtenerNombreUsuario());
+        let titulo = mencionado ? `Michihub — ${msg.usuario} te mencionó` : `Michihub — ${msg.usuario}`;
+
+        reproducirMeow();
+        new Notification(titulo, {
+            body: msg.texto,
+            icon: "icon-192.png"
+        });
+    }
+
+    function escaparHTML(texto){
+        let div = document.createElement("div");
+        div.innerText = texto;
+        return div.innerHTML;
+    }
+
+    function resaltarMenciones(texto){
+        let escapado = escaparHTML(texto).replace(/\n/g, "<br>");
+        return escapado.replace(/(@[\wÀ-ÿ]+)/g, (coincidencia) => {
+            return `<a href="Radio.html" style="color:#8a6d5c;font-weight:bold;text-decoration:underline;">${coincidencia}</a>`;
+        });
+    }
+
+    function renderizarMedia(msg){
+        if(!msg.media_url) return "";
+        if(msg.media_tipo === "imagen"){
+            return `<img src="${msg.media_url}" class="media-chat">`;
+        }
+        if(msg.media_tipo === "video"){
+            return `<video src="${msg.media_url}" class="media-chat" controls></video>`;
+        }
+        if(msg.media_tipo === "audio"){
+            return `<audio src="${msg.media_url}" controls style="margin-top:6px;width:100%;"></audio>`;
+        }
+        if(msg.media_tipo === "ubicacion"){
+            return `<br><a href="${msg.media_url}" target="_blank" rel="noopener" style="color:#4a4238;font-weight:bold;">📍 Ver ubicación en el mapa</a>`;
+        }
+        return "";
+    }
+
+    const PALETA_COLORES = ["#4ade80", "#fb923c", "#22d3ee", "#e879f9", "#facc15", "#60a5fa", "#f472b6", "#a3e635"];
+
+    function colorParaUsuario(nombre){
+        let hash = 0;
+        for(let i = 0; i < nombre.length; i++){
+            hash = nombre.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const indice = Math.abs(hash) % PALETA_COLORES.length;
+        return PALETA_COLORES[indice];
+    }
+
+    function formatearHora(fechaISO){
+        const fecha = new Date(fechaISO);
+        return fecha.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    let contadorMensajesTotal = 0;
+
+    function mostrarMensajeChat(msg){
+        if(esBloqueadoPorMi(msg.usuario)) return; // ocultar mensajes de usuarios que YO bloqueé
+
+        contadorMensajesTotal++;
+        const contadorEl = document.getElementById("contador-mensajes");
+        if(contadorEl) contadorEl.textContent = contadorMensajesTotal;
+
+        let p = document.createElement("div");
+        p.dataset.msgId = msg.id;
+        p.className = "msg-burbuja";
+
+        const media = renderizarMedia(msg);
+        const hora = msg.created_at ? formatearHora(msg.created_at) : "";
+        const enLinea = usuariosConectadosActual.includes(msg.usuario);
+
+        // Mensajes especiales del sistema
+        if(msg.usuario === "📢 ANUNCIO"){
+            p.innerHTML = `<div style="background:#f5e9c8;border:1px solid #d8bf85;border-radius:10px;padding:10px;font-weight:bold;color:#8a6d23;width:100%;">📢 ANUNCIO: ${resaltarMenciones(msg.texto)}${media}</div>`;
+            mensajesDiv.appendChild(p);
+            mensajesDiv.scrollTop = mensajesDiv.scrollHeight;
+            return;
+        }
+        if(msg.usuario === "🛡️ Michihub Admin"){
+            p.innerHTML = `<div style="color:var(--accent);font-style:italic;width:100%;">${escaparHTML(msg.usuario)}: ${resaltarMenciones(msg.texto)}${media}</div>`;
+            mensajesDiv.appendChild(p);
+            mensajesDiv.scrollTop = mensajesDiv.scrollHeight;
+            return;
+        }
+
+        const colorUsuario = colorParaUsuario(msg.usuario);
+        const avatarHTML = msg.avatar_url
+            ? `<img src="${msg.avatar_url}">`
+            : `${escaparHTML((msg.usuario||"?").charAt(0).toUpperCase())}`;
+
+        const esMensajeAdmin = msg.usuario && msg.usuario !== "Anónimo" && esNombreAdmin(msg.usuario);
+        const badgeHTML = esMensajeAdmin ? `<span class="msg-badge">🛡️ CEO</span>` : "";
+
+        p.innerHTML = `
+            <div class="msg-avatar" style="background:${colorUsuario};">
+                ${avatarHTML}
+                ${enLinea ? '<span class="dot-online"></span>' : ''}
+            </div>
+            <div class="msg-contenido" style="--user-color:${colorUsuario};">
+                <div class="msg-cabecera">
+                    <span class="msg-nombre">${escaparHTML(msg.usuario)}</span>
+                    ${badgeHTML}
+                </div>
+                <div class="msg-texto">${resaltarMenciones(msg.texto)}${media}</div>
+                <div class="msg-hora">${hora}</div>
+            </div>
+        `;
+
+        mensajesDiv.appendChild(p);
+        mensajesDiv.scrollTop = mensajesDiv.scrollHeight;
+    }
+
+    async function cargarMensajesChat(){
+        const { data, error } = await supabaseChat
+            .from("mensajes")
+            .select("*")
+            .order("created_at", { ascending: true })
+            .limit(100);
+
+        if(error){
+            console.error("Error cargando mensajes del chat:", error);
+            return;
+        }
+        data.forEach(mostrarMensajeChat);
+    }
+
+    async function enviarMensajeChat(){
+        let texto = inputTexto.value.trim();
+        if(!texto) return;
+
+        const usuario = obtenerNombreUsuario();
+
+        // Comandos personales de bloqueo (disponibles para cualquier usuario)
+        const partesTexto = texto.trim().split(/\s+/);
+        if(partesTexto[0].toLowerCase() === "/bloquear"){
+            const objetivo = partesTexto.slice(1).join(" ");
+            if(!objetivo){ alert("Uso: /bloquear NombreUsuario"); inputTexto.value=""; return; }
+            bloquearUsuario(objetivo);
+            alert(`Ya no verás los mensajes de ${objetivo} (a partir de ahora).`);
+            inputTexto.value = "";
+            return;
+        }
+        if(partesTexto[0].toLowerCase() === "/desbloquear"){
+            const objetivo = partesTexto.slice(1).join(" ");
+            if(!objetivo){ alert("Uso: /desbloquear NombreUsuario"); inputTexto.value=""; return; }
+            desbloquearUsuario(objetivo);
+            alert(`Volverás a ver los mensajes de ${objetivo} (recarga la página).`);
+            inputTexto.value = "";
+            return;
+        }
+
+        // Comando personal: borrar tu última ubicación compartida (desaparece en tiempo real para todos)
+        if(partesTexto[0].toLowerCase() === "/borrarubicacion"){
+            const { data } = await supabaseChat
+                .from("mensajes")
+                .select("id")
+                .eq("usuario", usuario)
+                .eq("media_tipo", "ubicacion")
+                .order("created_at", { ascending: false })
+                .limit(1);
+
+            if(data && data.length){
+                await supabaseChat.from("mensajes").delete().eq("id", data[0].id);
+            }else{
+                alert("No tienes ninguna ubicación compartida para borrar.");
+            }
+            inputTexto.value = "";
+            return;
+        }
+
+        // Comandos de administrador (solo el CEO puede usarlos)
+        if(esAdmin() && texto.startsWith("/") && texto.toLowerCase() !== "/soporte"){
+            const eraComando = await ejecutarComandoAdmin(texto);
+            if(eraComando){
+                inputTexto.value = "";
+                return;
+            }
+        }
+
+        // Comando /soporte, disponible para todos
+        if(texto.toLowerCase() === "/soporte"){
+            texto = "📧 Soporte de Michihub: michihub@hotmail.com";
+        }
+
+        // Revisar si el chat está cerrado (el admin siempre puede escribir)
+        if(!esAdmin()){
+            const cerrado = await obtenerChatCerrado();
+            if(cerrado){
+                alert("El chat está cerrado temporalmente por el administrador.");
+                return;
+            }
+
+            // Revisar si el usuario está silenciado o baneado
+            const estadoMod = await obtenerEstadoModeracion(usuario);
+            if(estadoMod.estado === "baneado"){
+                alert("Has sido baneado del chat.");
+                return;
+            }
+            if(estadoMod.estado === "silenciado"){
+                alert("Estás silenciado temporalmente y no puedes enviar mensajes.");
+                return;
+            }
+
+            // ANTI-LINK: bloquear enlaces para usuarios normales
+            const patronLink = /(https?:\/\/|www\.|\.(com|net|org|io|co|gg|xyz|info|me|ly|app|dev|es|mx)\b)/i;
+            if(patronLink.test(texto)){
+                alert("No se permiten enlaces en el chat.");
+                return;
+            }
+        }
+
+        const { error } = await supabaseChat
+            .from("mensajes")
+            .insert([{ usuario, texto, avatar_url: obtenerFotoUsuario() }]);
+
+        if(error){
+            console.error("Error enviando mensaje del chat:", error);
+            return;
+        }
+        inputTexto.value = "";
+    }
+
+    btnEnviar.addEventListener("click", enviarMensajeChat);
+
+    /* ADJUNTAR ARCHIVOS (fotos, videos, audios) */
+    btnAdjuntar.addEventListener("click", () => inputMedia.click());
+
+    inputMedia.addEventListener("change", async () => {
+        const archivo = inputMedia.files[0];
+        if(!archivo) return;
+
+        let tipo = "archivo";
+        if(archivo.type.startsWith("image/")) tipo = "imagen";
+        else if(archivo.type.startsWith("video/")) tipo = "video";
+        else if(archivo.type.startsWith("audio/")) tipo = "audio";
+
+        const nombreArchivo = `${Date.now()}_${archivo.name}`;
+
+        const { error: errorSubida } = await supabaseChat
+            .storage.from("chat-media")
+            .upload(nombreArchivo, archivo);
+
+        if(errorSubida){
+            alert("No se pudo subir el archivo.");
+            console.error(errorSubida);
+            inputMedia.value = "";
+            return;
+        }
+
+        const { data: urlData } = supabaseChat
+            .storage.from("chat-media")
+            .getPublicUrl(nombreArchivo);
+
+        const usuario = obtenerNombreUsuario();
+        await supabaseChat.from("mensajes").insert([{
+            usuario,
+            texto: "",
+            media_url: urlData.publicUrl,
+            media_tipo: tipo,
+            avatar_url: obtenerFotoUsuario()
+        }]);
+
+        inputMedia.value = "";
+    });
+
+    /* COMPARTIR UBICACIÓN */
+    btnUbicacion.addEventListener("click", () => {
+        if(!navigator.geolocation){
+            alert("Tu navegador no soporta compartir ubicación.");
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(async (posicion) => {
+            const { latitude, longitude } = posicion.coords;
+            const link = `https://www.google.com/maps?q=${latitude},${longitude}`;
+            const usuario = obtenerNombreUsuario();
+            await supabaseChat.from("mensajes").insert([{
+                usuario,
+                texto: "📍 Compartió su ubicación",
+                media_url: link,
+                media_tipo: "ubicacion",
+                avatar_url: obtenerFotoUsuario()
+            }]);
+        }, () => {
+            alert("No se pudo obtener tu ubicación. Revisa los permisos del navegador.");
+        });
+    });
+
+    /* COMPARTIR EVENTO */
+    btnEvento.addEventListener("click", async () => {
+        const titulo = prompt("Título del evento:");
+        if(!titulo) return;
+        const fecha = prompt("Fecha y hora (ej. 10 de septiembre, 8:00 PM):");
+        const lugar = prompt("Lugar (opcional):");
+
+        let texto = `📅 Evento: ${titulo}`;
+        if(fecha) texto += `\n🗓️ ${fecha}`;
+        if(lugar) texto += `\n📍 ${lugar}`;
+
+        const usuario = obtenerNombreUsuario();
+        await supabaseChat.from("mensajes").insert([{ usuario, texto, avatar_url: obtenerFotoUsuario() }]);
+    });
+
+    inputTexto.addEventListener("keydown", (e) => {
+        if(e.key === "Enter") enviarMensajeChat();
+    });
+
+    // Tiempo real: mostrar mensajes nuevos de cualquier usuario al instante
+    supabaseChat
+        .channel("mensajes-realtime")
+        .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "mensajes" },
+            (payload) => {
+                mostrarMensajeChat(payload.new);
+                notificarMensajeNuevo(payload.new);
+            }
+        )
+        .on(
+            "postgres_changes",
+            { event: "DELETE", schema: "public", table: "mensajes" },
+            (payload) => {
+                const elemento = mensajesDiv.querySelector(`[data-msg-id="${payload.old.id}"]`);
+                if(elemento) elemento.remove();
+            }
+        )
+        .subscribe();
+
+    cargarMensajesChat();
+
+    /* PRESENCIA EN TIEMPO REAL (quién está conectado ahora) */
+    const divEnLinea = document.getElementById("usuarios-en-linea");
+    const canalPresencia = supabaseChat.channel("presencia-chat", {
+        config: { presence: { key: obtenerNombreUsuario() } }
+    });
+
+    function actualizarListaEnLinea(){
+        const estado = canalPresencia.presenceState();
+        const nombres = Object.keys(estado);
+        usuariosConectadosActual = nombres;
+        divEnLinea.textContent = "🟢 " + nombres.length + " conectado" + (nombres.length === 1 ? "" : "s");
+    }
+
+    canalPresencia
+        .on("presence", { event: "sync" }, actualizarListaEnLinea)
+        .subscribe(async (status) => {
+            if(status === "SUBSCRIBED"){
+                await canalPresencia.track({ usuario: obtenerNombreUsuario() });
+            }
+        });
+})();
+</script>
+
+
+<script>
+/* PANTALLA DE CARGA */
+let loadingTimeoutId = null;
+
+function mostrarPantallaCarga(){
+    let loading = document.getElementById("loading-screen");
+    if(!loading) return;
+
+    clearTimeout(loadingTimeoutId);
+    loading.classList.remove("fade-out");
+
+    loadingTimeoutId = setTimeout(() => {
+        loading.classList.add("fade-out");
+    }, 2200);
+}
+
+window.addEventListener("load", mostrarPantallaCarga);
+window.addEventListener("pageshow", (e) => {
+    if(e.persisted) mostrarPantallaCarga();
+});
+document.addEventListener("visibilitychange", () => {
+    if(document.visibilityState === "visible") mostrarPantallaCarga();
+});
+mostrarPantallaCarga();
+</script>
+
+</body>
+</html>
