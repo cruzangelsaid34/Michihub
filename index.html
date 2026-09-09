@@ -548,7 +548,7 @@ function mostrarResultadoCredencial(nombre, data, mensajeExtra){
     let resultado = document.getElementById("resultado-id");
     resultado.innerHTML = `
         <img src="${data.img}" class="id-image">
-        <p>Código: <b>${data.codigo}</b></p>
+        <p style="font-size:1.1rem;font-weight:bold;color:#b09e8d;margin:10px 0;">✨ Credencial asegurada con éxito</p>
         ${data.fecha ? `<p>📅 Creado: ${data.fecha}${data.hora ? " - " + data.hora : ""}</p>` : ""}
         ${data.ubicacion ? `<p>📍 Ubicación: ${data.ubicacion}</p>` : ""}
         ${data.expiracion ? `<p>Válido hasta: <b>${data.expiracion}</b></p>` : ""}
@@ -946,21 +946,20 @@ async function generarImagenCredencial(nombre, codigo, fecha, hora, expiracion, 
 
     ctx.font = "14px Arial";
     ctx.fillText("Nombre: " + nombre, 130, 65);
-    ctx.fillText("Código: " + codigo, 130, 85);
     
     ctx.font = "12px Arial";
-    ctx.fillText("Creado: " + fecha + " - " + hora, 130, 105);
+    ctx.fillText("Creado: " + fecha + " - " + hora, 130, 85);
     
     if(ubicacion){
-        ctx.fillText("Ubicación: " + ubicacion, 130, 125);
+        ctx.fillText("Ubicación: " + ubicacion, 130, 105);
     }
     
     if(expiracion) {
-        ctx.fillText("Válido hasta: " + expiracion, 130, ubicacion ? 145 : 125);
+        ctx.fillText("Válido hasta: " + expiracion, 130, ubicacion ? 125 : 105);
     }
     
     ctx.font = "italic 10px Arial";
-    let msgY = ubicacion ? 165 : 145;
+    let msgY = ubicacion ? 145 : 125;
     ctx.fillText("¡Gracias por unirte a MichiHub! 🐾", 30, msgY);
 
     let img;
@@ -990,11 +989,10 @@ async function generarImagenCredencial(nombre, codigo, fecha, hora, expiracion, 
         ctx.fillText("MichiHub ID", 130, 40);
         ctx.font = "14px Arial";
         ctx.fillText("Nombre: " + nombre, 130, 65);
-        ctx.fillText("Código: " + codigo, 130, 85);
         ctx.font = "12px Arial";
-        ctx.fillText("Creado: " + fecha + " - " + hora, 130, 105);
-        if(ubicacion) ctx.fillText("Ubicación: " + ubicacion, 130, 125);
-        if(expiracion) ctx.fillText("Válido hasta: " + expiracion, 130, ubicacion ? 145 : 125);
+        ctx.fillText("Creado: " + fecha + " - " + hora, 130, 85);
+        if(ubicacion) ctx.fillText("Ubicación: " + ubicacion, 130, 105);
+        if(expiracion) ctx.fillText("Válido hasta: " + expiracion, 130, ubicacion ? 125 : 105);
         
         img = canvas.toDataURL();
     }
