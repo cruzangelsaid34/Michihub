@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MichiHub | Lo-fi Lounge</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Playfair+Display:ital@1&display=swap');
@@ -192,6 +193,37 @@ main{
     max-width:320px;
 }
 
+/* PANTALLA DE CUENTA SUSPENDIDA / BLOQUEADA */
+#cuenta-gate{
+    position:fixed;
+    inset:0;
+    background-color:var(--bg-base);
+    background-image:url('https://www.transparenttextures.com/patterns/cream-paper.png');
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    z-index:9500;
+    text-align:center;
+    padding:20px;
+}
+#cuenta-gate.activo{ display:flex; }
+#cuenta-gate h1{
+    font-family:'Playfair Display',serif;
+    font-size:2.2rem;
+    color:var(--text-main);
+}
+#cuenta-gate p{
+    color:var(--text-main);
+    opacity:0.85;
+    max-width:340px;
+}
+#cuenta-gate .cuenta-hasta{
+    font-weight:bold;
+    color:#b09e8d;
+}
+
 /* MENU DE NAVEGACION */
 nav.menu-principal{
     width:100%;
@@ -239,6 +271,12 @@ nav.menu-principal a.activo{
      data-auto_prompt="false">
 </div>
 <div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="outline"></div>
+</div>
+
+<div id="cuenta-gate">
+<h1 id="cuenta-gate-titulo">⛔ Cuenta bloqueada</h1>
+<p id="cuenta-gate-mensaje">Tu cuenta fue restringida por el administrador.</p>
+<p>Disponible de nuevo: <span class="cuenta-hasta" id="cuenta-gate-hasta"></span></p>
 </div>
 
 <audio id="bg-music" loop>
@@ -469,6 +507,62 @@ if(localStorage.getItem("michihubMusicaEstado") === "reproduciendo"){
     });
 }
 
+/* SUPABASE: estado de cuenta (suspensión / bloqueo por el administrador) */
+const SUPABASE_URL = "https://veihvfcnczawoycphhga.supabase.co";
+const SUPABASE_KEY = "sb_publishable_DpvZMjPgjcfxCpK5OTJRHw_ah2emZkb";
+const supabaseCuentas = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Consulta el estado de la cuenta en Supabase (por correo de Google). Si el tiempo de restricción ya venció, se trata como activa.
+async function obtenerEstadoCuenta(correo){
+    const { data, error } = await supabaseCuentas
+        .from("cuentas")
+        .select("*")
+        .eq("correo", correo)
+        .maybeSingle();
+    if(error || !data) return { estado: "activa" };
+
+    if((data.estado === "suspendida" || data.estado === "bloqueada") && data.hasta && new Date(data.hasta) < new Date()){
+        return { estado: "activa" };
+    }
+    return data;
+}
+
+function formatearFechaHasta(iso){
+    return new Date(iso).toLocaleString("es-ES", { dateStyle: "long", timeStyle: "short" });
+}
+
+// Muestra la pantalla de restricción y cierra la sesión local para impedir el acceso
+function mostrarCuentaRestringida(estado){
+    document.getElementById("login-gate").classList.remove("activo");
+    const gate = document.getElementById("cuenta-gate");
+    const titulo = document.getElementById("cuenta-gate-titulo");
+    const mensaje = document.getElementById("cuenta-gate-mensaje");
+    const hasta = document.getElementById("cuenta-gate-hasta");
+
+    if(estado.estado === "bloqueada"){
+        titulo.textContent = "⛔ Cuenta bloqueada";
+        mensaje.textContent = "Tu cuenta fue bloqueada por el administrador.";
+    }else{
+        titulo.textContent = "⏸️ Cuenta suspendida";
+        mensaje.textContent = "Tu cuenta fue suspendida por el administrador.";
+    }
+    hasta.textContent = estado.hasta ? formatearFechaHasta(estado.hasta) : "Indefinido";
+    gate.classList.add("activo");
+
+    localStorage.removeItem("michihubLogueado");
+}
+
+// Revisa el estado de cuenta del usuario logueado (por correo de Google); retorna true si está restringido
+async function verificarRestriccionCuenta(correo){
+    if(!correo) return false;
+    const estado = await obtenerEstadoCuenta(correo);
+    if(estado.estado === "suspendida" || estado.estado === "bloqueada"){
+        mostrarCuentaRestringida(estado);
+        return true;
+    }
+    return false;
+}
+
 /* LOGIN CON GOOGLE */
 function decodificarJWT(token){
     let payload = token.split(".")[1];
@@ -478,9 +572,11 @@ function decodificarJWT(token){
     return JSON.parse(json);
 }
 
-function manejarLoginGoogle(response){
+async function manejarLoginGoogle(response){
     let datosUsuario = decodificarJWT(response.credential);
     let nombre = datosUsuario.name || datosUsuario.email;
+
+    if(await verificarRestriccionCuenta(datosUsuario.email)) return;
 
     localStorage.setItem("michihubLogueado", "true");
     localStorage.setItem("michihubNombre", nombre);
@@ -496,18 +592,23 @@ function manejarLoginGoogle(response){
 function cerrarSesion(){
     localStorage.removeItem("michihubLogueado");
     localStorage.removeItem("michihubNombre");
+    localStorage.removeItem("michihubEmail");
     location.reload();
 }
 
 /* Verifica la sesión al entrar; si no hay login, bloquea el acceso */
-(function verificarSesionObligatoria(){
+(async function verificarSesionObligatoria(){
     let logueado = localStorage.getItem("michihubLogueado") === "true";
 
     if(!logueado){
         document.getElementById("login-gate").classList.add("activo");
     }else{
-        document.getElementById("link-cerrar-sesion").style.display = "inline-block";
         let nombreGuardado = localStorage.getItem("michihubNombre");
+        let correoGuardado = localStorage.getItem("michihubEmail");
+
+        if(await verificarRestriccionCuenta(correoGuardado)) return;
+
+        document.getElementById("link-cerrar-sesion").style.display = "inline-block";
         if(nombreGuardado) document.getElementById("nickInput").value = nombreGuardado;
     }
 })();

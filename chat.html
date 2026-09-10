@@ -517,6 +517,10 @@ configurarPWA();
         return localStorage.getItem("michihubNombre") || "Anónimo";
     }
 
+    function obtenerCorreoUsuario(){
+        return localStorage.getItem("michihubEmail") || "";
+    }
+
     function obtenerFotoUsuario(){
         return localStorage.getItem("michihubFoto") || "";
     }
@@ -543,6 +547,59 @@ configurarPWA();
     function desbloquearUsuario(usuario){
         const lista = obtenerBloqueados().filter(u => u !== usuario);
         localStorage.setItem("michihubBloqueados", JSON.stringify(lista));
+    }
+
+    /* ===== FILTRO AUTOMÁTICO DE CONTENIDO PROHIBIDO ===== */
+    const PALABRAS_PROHIBIDAS = {
+        "drogas": ["droga","drogas","cocaina","cocaína","marihuana","mariguana","weed","perico","cristal","lsd","heroina","heroína","metanfetamina","crack","fentanilo"],
+        "armas": ["pistola","pistolas","arma","armas","rifle","escopeta","ak47","ak-47","granada","explosivo","explosivos","metralleta"],
+        "alcohol": ["alcohol","cerveza","cervezas","vodka","whisky","whiskey","tequila","emborrachar","borracho","borracha"],
+        "sexo": ["sexo","porno","pornografia","pornografía","desnudo","desnuda","nudes","xxx","sexting"],
+        "groserias": ["puto","puta","putos","putas","pendejo","pendeja","mierda","chingada","chingar","verga","cabron","cabrón","joder","culero","culera","marica","maricon","maricón","hijueputa","hijodeputa"]
+    };
+
+    // Devuelve la categoría prohibida detectada en el texto, o null si no hay ninguna
+    function detectarContenidoProhibido(texto){
+        const normalizado = texto.toLowerCase();
+        for(const categoria in PALABRAS_PROHIBIDAS){
+            for(const palabra of PALABRAS_PROHIBIDAS[categoria]){
+                const patron = new RegExp("\\b" + palabra.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i");
+                if(patron.test(normalizado)) return categoria;
+            }
+        }
+        return null;
+    }
+
+    // Busca el correo de Google del usuario a partir de su último mensaje enviado
+    async function resolverCorreoPorNombre(nombreObjetivo){
+        const { data } = await supabaseChat
+            .from("mensajes")
+            .select("correo")
+            .eq("usuario", nombreObjetivo)
+            .order("created_at", { ascending: false })
+            .limit(1);
+        return (data && data.length && data[0].correo) ? data[0].correo : null;
+    }
+
+    // Aplica una infracción automática; a partir de la 3ª bloquea la cuenta 24h y a partir de la 6ª la suspende 5 días
+    async function aplicarInfraccionAutomatica(usuario, correo, categoria){
+        if(!correo) return; // sin cuenta de Google detectada, no se puede vincular la restricción
+
+        const { data } = await supabaseChat.from("cuentas").select("*").eq("correo", correo).maybeSingle();
+        const infraccionesActuales = (data && data.infracciones) ? data.infracciones : 0;
+        const nuevasInfracciones = infraccionesActuales + 1;
+
+        if(nuevasInfracciones >= 6){
+            const hasta = new Date(Date.now() + 5 * 24 * 60 * 60000).toISOString();
+            await supabaseChat.from("cuentas").upsert({ correo, usuario, estado: "suspendida", hasta, infracciones: nuevasInfracciones });
+            await publicarMensajeSistema(`⏸️ La cuenta de ${usuario} fue suspendida automáticamente por 5 días (contenido prohibido reiterado: ${categoria}).`);
+        }else if(nuevasInfracciones >= 3){
+            const hasta = new Date(Date.now() + 24 * 60 * 60000).toISOString();
+            await supabaseChat.from("cuentas").upsert({ correo, usuario, estado: "bloqueada", hasta, infracciones: nuevasInfracciones });
+            await publicarMensajeSistema(`⛔ La cuenta de ${usuario} fue bloqueada automáticamente por 24 horas (contenido prohibido: ${categoria}).`);
+        }else{
+            await supabaseChat.from("cuentas").upsert({ correo, usuario, infracciones: nuevasInfracciones });
+        }
     }
 
     /* ===== ADMINISTRACIÓN (CEO de Michihub) ===== */
@@ -711,6 +768,38 @@ configurarPWA();
             if(!usuarioObjetivo){ await publicarMensajeSistema("Uso: /desbanear NombreUsuario"); return true; }
             await supabaseChat.from("moderacion").upsert({ usuario: usuarioObjetivo, estado: "activo", hasta: null });
             await publicarMensajeSistema(`✅ ${usuarioObjetivo} fue desbaneado.`);
+            return true;
+        }
+
+        if(comando === "/suspendercuenta"){
+            const usuarioObjetivo = partes.slice(1).join(" ");
+            if(!usuarioObjetivo){ await publicarMensajeSistema("Uso: /suspendercuenta NombreUsuario"); return true; }
+            const correoObjetivo = await resolverCorreoPorNombre(usuarioObjetivo);
+            if(!correoObjetivo){ await publicarMensajeSistema(`No se encontró la cuenta de Google de ${usuarioObjetivo} (debe tener al menos un mensaje enviado en el chat).`); return true; }
+            const hasta = new Date(Date.now() + 5 * 24 * 60 * 60000).toISOString();
+            await supabaseChat.from("cuentas").upsert({ correo: correoObjetivo, usuario: usuarioObjetivo, estado: "suspendida", hasta });
+            await publicarMensajeSistema(`⏸️ La cuenta de ${usuarioObjetivo} fue suspendida por 5 días.`);
+            return true;
+        }
+
+        if(comando === "/bloquearcuenta"){
+            const usuarioObjetivo = partes.slice(1).join(" ");
+            if(!usuarioObjetivo){ await publicarMensajeSistema("Uso: /bloquearcuenta NombreUsuario"); return true; }
+            const correoObjetivo = await resolverCorreoPorNombre(usuarioObjetivo);
+            if(!correoObjetivo){ await publicarMensajeSistema(`No se encontró la cuenta de Google de ${usuarioObjetivo} (debe tener al menos un mensaje enviado en el chat).`); return true; }
+            const hasta = new Date(Date.now() + 24 * 60 * 60000).toISOString();
+            await supabaseChat.from("cuentas").upsert({ correo: correoObjetivo, usuario: usuarioObjetivo, estado: "bloqueada", hasta });
+            await publicarMensajeSistema(`⛔ La cuenta de ${usuarioObjetivo} fue bloqueada por 24 horas.`);
+            return true;
+        }
+
+        if(comando === "/reactivarcuenta"){
+            const usuarioObjetivo = partes.slice(1).join(" ");
+            if(!usuarioObjetivo){ await publicarMensajeSistema("Uso: /reactivarcuenta NombreUsuario"); return true; }
+            const correoObjetivo = await resolverCorreoPorNombre(usuarioObjetivo);
+            if(!correoObjetivo){ await publicarMensajeSistema(`No se encontró la cuenta de Google de ${usuarioObjetivo}.`); return true; }
+            await supabaseChat.from("cuentas").upsert({ correo: correoObjetivo, usuario: usuarioObjetivo, estado: "activa", hasta: null });
+            await publicarMensajeSistema(`✅ La cuenta de ${usuarioObjetivo} fue reactivada.`);
             return true;
         }
 
@@ -949,6 +1038,7 @@ configurarPWA();
         if(!texto) return;
 
         const usuario = obtenerNombreUsuario();
+        const correo = obtenerCorreoUsuario();
 
         // Comandos personales de bloqueo (disponibles para cualquier usuario)
         const partesTexto = texto.trim().split(/\s+/);
@@ -1027,11 +1117,20 @@ configurarPWA();
                 alert("No se permiten enlaces en el chat.");
                 return;
             }
+
+            // FILTRO AUTOMÁTICO: droga, armas, alcohol, sexo y groserías
+            const categoriaProhibida = detectarContenidoProhibido(texto);
+            if(categoriaProhibida){
+                alert("Tu mensaje no se envió: contiene contenido no permitido.");
+                await aplicarInfraccionAutomatica(usuario, correo, categoriaProhibida);
+                inputTexto.value = "";
+                return;
+            }
         }
 
         const { error } = await supabaseChat
             .from("mensajes")
-            .insert([{ usuario, texto, avatar_url: obtenerFotoUsuario() }]);
+            .insert([{ usuario, texto, correo, avatar_url: obtenerFotoUsuario() }]);
 
         if(error){
             console.error("Error enviando mensaje del chat:", error);
@@ -1075,6 +1174,7 @@ configurarPWA();
         await supabaseChat.from("mensajes").insert([{
             usuario,
             texto: "",
+            correo: obtenerCorreoUsuario(),
             media_url: urlData.publicUrl,
             media_tipo: tipo,
             avatar_url: obtenerFotoUsuario()
@@ -1096,6 +1196,7 @@ configurarPWA();
             await supabaseChat.from("mensajes").insert([{
                 usuario,
                 texto: "📍 Compartió su ubicación",
+                correo: obtenerCorreoUsuario(),
                 media_url: link,
                 media_tipo: "ubicacion",
                 avatar_url: obtenerFotoUsuario()
@@ -1117,7 +1218,7 @@ configurarPWA();
         if(lugar) texto += `\n📍 ${lugar}`;
 
         const usuario = obtenerNombreUsuario();
-        await supabaseChat.from("mensajes").insert([{ usuario, texto, avatar_url: obtenerFotoUsuario() }]);
+        await supabaseChat.from("mensajes").insert([{ usuario, texto, correo: obtenerCorreoUsuario(), avatar_url: obtenerFotoUsuario() }]);
     });
 
     inputTexto.addEventListener("keydown", (e) => {
