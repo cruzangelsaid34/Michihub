@@ -861,24 +861,24 @@ async function confirmarCrearCredencial(){
 /* GENERA LA IMAGEN (CANVAS) DE UNA CREDENCIAL, CON FOTO Y UBICACIÓN */
 async function generarImagenCredencial(nombre, codigo, fecha, hora, expiracion, fotoURL, ubicacion){
     let canvas = document.createElement("canvas");
-    canvas.width = 500;
-    canvas.height = 280;
+    canvas.width = 520;
+    canvas.height = 300;
     let ctx = canvas.getContext("2d");
 
     // Fondo base
     ctx.fillStyle = "#f4f0ea";
-    ctx.fillRect(0, 0, 500, 280);
+    ctx.fillRect(0, 0, 520, 300);
 
     // Imagen de gato de fondo (cover-fit)
     try{
         let urlGato = await obtenerGatoAleatorio();
         let imgGato = await loadImageCORS(urlGato);
 
-        let scale = Math.max(500 / imgGato.width, 280 / imgGato.height);
+        let scale = Math.max(520 / imgGato.width, 300 / imgGato.height);
         let w = imgGato.width * scale;
         let h = imgGato.height * scale;
-        let x = (500 - w) / 2;
-        let y = (280 - h) / 2;
+        let x = (520 - w) / 2;
+        let y = (300 - h) / 2;
         ctx.drawImage(imgGato, x, y, w, h);
     }catch(err){
         // si falla, se queda el fondo base
@@ -886,31 +886,31 @@ async function generarImagenCredencial(nombre, codigo, fecha, hora, expiracion, 
 
     // Overlay oscuro para que el texto se lea bien
     ctx.fillStyle = "rgba(0,0,0,0.5)";
-    ctx.fillRect(0, 0, 500, 280);
+    ctx.fillRect(0, 0, 520, 300);
 
     // Borde decorativo
     ctx.strokeStyle = "#b09e8d";
     ctx.lineWidth = 6;
-    ctx.strokeRect(12, 12, 476, 256);
+    ctx.strokeRect(12, 12, 496, 276);
 
-    // Foto de perfil (círculo, izquierda pero más grande y mejor posicionada)
+    // Foto de perfil (círculo, centrada mejor)
     if(fotoURL){
         try{
             let imgPerfil = await loadImageCORS(fotoURL);
             let radioFoto = 50;
             ctx.save();
             ctx.beginPath();
-            ctx.arc(80, 60, radioFoto, 0, Math.PI * 2);
+            ctx.arc(90, 70, radioFoto, 0, Math.PI * 2);
             ctx.strokeStyle = "#b09e8d";
             ctx.lineWidth = 4;
             ctx.stroke();
             ctx.clip();
-            ctx.drawImage(imgPerfil, 80 - radioFoto, 60 - radioFoto, radioFoto * 2, radioFoto * 2);
+            ctx.drawImage(imgPerfil, 90 - radioFoto, 70 - radioFoto, radioFoto * 2, radioFoto * 2);
             ctx.restore();
         }catch(err){
             // Si falla, dibujar un círculo vacío
             ctx.beginPath();
-            ctx.arc(80, 60, 50, 0, Math.PI * 2);
+            ctx.arc(90, 70, 50, 0, Math.PI * 2);
             ctx.strokeStyle = "#b09e8d";
             ctx.lineWidth = 4;
             ctx.stroke();
@@ -918,69 +918,69 @@ async function generarImagenCredencial(nombre, codigo, fecha, hora, expiracion, 
     }else{
         // Avatar placeholder
         ctx.beginPath();
-        ctx.arc(80, 60, 50, 0, Math.PI * 2);
+        ctx.arc(90, 70, 50, 0, Math.PI * 2);
         ctx.strokeStyle = "#b09e8d";
         ctx.lineWidth = 4;
         ctx.stroke();
         ctx.fillStyle = "#b09e8d";
         ctx.font = "32px Arial";
-        ctx.fillText("👤", 60, 75);
+        ctx.fillText("👤", 70, 85);
     }
 
-    // Texto (ajustado para dejar espacio a la foto más grande)
+    // Texto (bien posicionado)
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 16px 'Playfair Display', serif";
-    ctx.fillText("MichiHub ID", 170, 45);
+    ctx.font = "bold 18px 'Playfair Display', serif";
+    ctx.fillText("MichiHub ID", 190, 50);
 
     ctx.font = "13px Arial";
-    ctx.fillText("Nombre: " + nombre, 170, 68);
+    ctx.fillText("Nombre: " + nombre, 190, 75);
     
-    ctx.font = "11px Arial";
-    ctx.fillText("Creado: " + fecha + " - " + hora, 170, 87);
+    ctx.font = "12px Arial";
+    ctx.fillText("Creado: " + fecha + " - " + hora, 190, 95);
     
     if(ubicacion){
-        ctx.fillText("Ubicación: " + ubicacion, 170, 106);
+        ctx.fillText("Ubicación: " + ubicacion, 190, 115);
     }
     
     if(expiracion) {
-        ctx.fillText("Válido hasta: " + expiracion, 170, ubicacion ? 125 : 106);
+        ctx.fillText("Válido hasta: " + expiracion, 190, ubicacion ? 135 : 115);
     }
     
-    ctx.font = "italic 9px Arial";
-    let msgY = ubicacion ? 145 : 125;
-    ctx.fillText("¡Gracias por unirte a MichiHub! 🐾", 30, msgY);
+    ctx.font = "italic 10px Arial";
+    let msgY = ubicacion ? 160 : 140;
+    ctx.fillText("¡Gracias por unirte a MichiHub! 🐾", 40, msgY);
 
     let img;
     try{
         img = canvas.toDataURL();
     }catch(err){
         // Fallback sin imagen de fondo si hay problema con CORS
-        ctx.clearRect(0, 0, 500, 280);
+        ctx.clearRect(0, 0, 520, 300);
         ctx.fillStyle = "#f4f0ea";
-        ctx.fillRect(0, 0, 500, 280);
+        ctx.fillRect(0, 0, 520, 300);
         ctx.fillStyle = "rgba(0,0,0,0.5)";
-        ctx.fillRect(0, 0, 500, 280);
+        ctx.fillRect(0, 0, 520, 300);
         ctx.strokeStyle = "#b09e8d";
         ctx.lineWidth = 6;
-        ctx.strokeRect(12, 12, 476, 256);
+        ctx.strokeRect(12, 12, 496, 276);
         
         if(fotoURL){
             ctx.beginPath();
-            ctx.arc(80, 60, 50, 0, Math.PI * 2);
+            ctx.arc(90, 70, 50, 0, Math.PI * 2);
             ctx.strokeStyle = "#b09e8d";
             ctx.lineWidth = 4;
             ctx.stroke();
         }
         
         ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 16px 'Playfair Display', serif";
-        ctx.fillText("MichiHub ID", 170, 45);
+        ctx.font = "bold 18px 'Playfair Display', serif";
+        ctx.fillText("MichiHub ID", 190, 50);
         ctx.font = "13px Arial";
-        ctx.fillText("Nombre: " + nombre, 170, 68);
-        ctx.font = "11px Arial";
-        ctx.fillText("Creado: " + fecha + " - " + hora, 170, 87);
-        if(ubicacion) ctx.fillText("Ubicación: " + ubicacion, 170, 106);
-        if(expiracion) ctx.fillText("Válido hasta: " + expiracion, 170, ubicacion ? 125 : 106);
+        ctx.fillText("Nombre: " + nombre, 190, 75);
+        ctx.font = "12px Arial";
+        ctx.fillText("Creado: " + fecha + " - " + hora, 190, 95);
+        if(ubicacion) ctx.fillText("Ubicación: " + ubicacion, 190, 115);
+        if(expiracion) ctx.fillText("Válido hasta: " + expiracion, 190, ubicacion ? 135 : 115);
         
         img = canvas.toDataURL();
     }
