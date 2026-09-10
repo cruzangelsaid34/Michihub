@@ -900,17 +900,17 @@ async function generarImagenCredencial(nombre, codigo, fecha, hora, expiracion, 
             let radioFoto = 50;
             ctx.save();
             ctx.beginPath();
-            ctx.arc(90, 70, radioFoto, 0, Math.PI * 2);
+            ctx.arc(90, 100, radioFoto, 0, Math.PI * 2);
             ctx.strokeStyle = "#b09e8d";
             ctx.lineWidth = 4;
             ctx.stroke();
             ctx.clip();
-            ctx.drawImage(imgPerfil, 90 - radioFoto, 70 - radioFoto, radioFoto * 2, radioFoto * 2);
+            ctx.drawImage(imgPerfil, 90 - radioFoto, 100 - radioFoto, radioFoto * 2, radioFoto * 2);
             ctx.restore();
         }catch(err){
             // Si falla, dibujar un círculo vacío
             ctx.beginPath();
-            ctx.arc(90, 70, 50, 0, Math.PI * 2);
+            ctx.arc(90, 100, 50, 0, Math.PI * 2);
             ctx.strokeStyle = "#b09e8d";
             ctx.lineWidth = 4;
             ctx.stroke();
@@ -918,36 +918,36 @@ async function generarImagenCredencial(nombre, codigo, fecha, hora, expiracion, 
     }else{
         // Avatar placeholder
         ctx.beginPath();
-        ctx.arc(90, 70, 50, 0, Math.PI * 2);
+        ctx.arc(90, 100, 50, 0, Math.PI * 2);
         ctx.strokeStyle = "#b09e8d";
         ctx.lineWidth = 4;
         ctx.stroke();
         ctx.fillStyle = "#b09e8d";
         ctx.font = "32px Arial";
-        ctx.fillText("👤", 70, 85);
+        ctx.fillText("👤", 70, 115);
     }
 
     // Texto (bien posicionado)
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 18px 'Playfair Display', serif";
-    ctx.fillText("MichiHub ID", 190, 50);
+    ctx.fillText("MichiHub ID", 190, 85);
 
     ctx.font = "13px Arial";
-    ctx.fillText("Nombre: " + nombre, 190, 75);
+    ctx.fillText("Nombre: " + nombre, 190, 110);
     
     ctx.font = "12px Arial";
-    ctx.fillText("Creado: " + fecha + " - " + hora, 190, 95);
+    ctx.fillText("Creado: " + fecha + " - " + hora, 190, 130);
     
     if(ubicacion){
-        ctx.fillText("Ubicación: " + ubicacion, 190, 115);
+        ctx.fillText("Ubicación: " + ubicacion, 190, 150);
     }
     
     if(expiracion) {
-        ctx.fillText("Válido hasta: " + expiracion, 190, ubicacion ? 135 : 115);
+        ctx.fillText("Válido hasta: " + expiracion, 190, ubicacion ? 170 : 150);
     }
     
     ctx.font = "italic 10px Arial";
-    let msgY = ubicacion ? 160 : 140;
+    let msgY = ubicacion ? 195 : 175;
     ctx.fillText("¡Gracias por unirte a MichiHub! 🐾", 40, msgY);
 
     let img;
@@ -966,7 +966,7 @@ async function generarImagenCredencial(nombre, codigo, fecha, hora, expiracion, 
         
         if(fotoURL){
             ctx.beginPath();
-            ctx.arc(90, 70, 50, 0, Math.PI * 2);
+            ctx.arc(90, 100, 50, 0, Math.PI * 2);
             ctx.strokeStyle = "#b09e8d";
             ctx.lineWidth = 4;
             ctx.stroke();
@@ -974,13 +974,13 @@ async function generarImagenCredencial(nombre, codigo, fecha, hora, expiracion, 
         
         ctx.fillStyle = "#ffffff";
         ctx.font = "bold 18px 'Playfair Display', serif";
-        ctx.fillText("MichiHub ID", 190, 50);
+        ctx.fillText("MichiHub ID", 190, 85);
         ctx.font = "13px Arial";
-        ctx.fillText("Nombre: " + nombre, 190, 75);
+        ctx.fillText("Nombre: " + nombre, 190, 110);
         ctx.font = "12px Arial";
-        ctx.fillText("Creado: " + fecha + " - " + hora, 190, 95);
-        if(ubicacion) ctx.fillText("Ubicación: " + ubicacion, 190, 115);
-        if(expiracion) ctx.fillText("Válido hasta: " + expiracion, 190, ubicacion ? 135 : 115);
+        ctx.fillText("Creado: " + fecha + " - " + hora, 190, 130);
+        if(ubicacion) ctx.fillText("Ubicación: " + ubicacion, 190, 150);
+        if(expiracion) ctx.fillText("Válido hasta: " + expiracion, 190, ubicacion ? 170 : 150);
         
         img = canvas.toDataURL();
     }
