@@ -210,6 +210,112 @@ main{
     margin-top:3px;
 }
 
+/* CITA (mensaje al que se responde) */
+.msg-cita{
+    background:rgba(0,0,0,0.06);
+    border-left:3px solid var(--user-color, var(--accent));
+    border-radius:6px;
+    padding:4px 8px;
+    margin-bottom:5px;
+    font-size:0.78rem;
+    color:var(--text-main);
+    opacity:0.85;
+}
+.msg-cita b{ color:var(--user-color, var(--text-main)); }
+
+/* ACCIONES (responder / reaccionar / editar / borrar) */
+.msg-acciones{
+    display:flex;
+    gap:10px;
+    margin-top:4px;
+    opacity:0.55;
+}
+.msg-acciones button{
+    background:none;
+    border:none;
+    cursor:pointer;
+    font-size:0.85rem;
+    padding:0;
+    color:var(--text-main);
+}
+.msg-acciones button:hover{ opacity:1; }
+
+/* REACCIONES */
+.msg-reacciones{
+    display:flex;
+    flex-wrap:wrap;
+    gap:5px;
+    margin-top:5px;
+}
+.msg-reaccion{
+    background:rgba(255,255,255,0.7);
+    border:1px solid rgba(0,0,0,0.08);
+    border-radius:12px;
+    padding:1px 8px;
+    font-size:0.78rem;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:3px;
+}
+.msg-reaccion.mia{
+    background:var(--accent);
+    color:white;
+    border-color:var(--accent);
+}
+
+/* Selector de emoji flotante */
+.selector-emoji{
+    position:absolute;
+    display:none;
+    gap:6px;
+    background:var(--card-bg, #fff);
+    border:1px solid rgba(0,0,0,0.1);
+    border-radius:20px;
+    padding:5px 10px;
+    box-shadow:0 4px 14px rgba(0,0,0,0.18);
+    z-index:500;
+}
+.selector-emoji.activo{ display:flex; }
+.selector-emoji span{ cursor:pointer; font-size:1.2rem; }
+
+/* Barra de "respondiendo a" sobre el input */
+#barra-respondiendo{
+    display:none;
+    align-items:center;
+    justify-content:space-between;
+    background:rgba(0,0,0,0.06);
+    border-left:3px solid var(--accent);
+    border-radius:6px;
+    padding:6px 10px;
+    font-size:0.8rem;
+    color:var(--text-main);
+}
+#barra-respondiendo.activo{ display:flex; }
+#barra-respondiendo button{
+    background:none;
+    border:none;
+    font-size:1rem;
+    cursor:pointer;
+    color:var(--text-main);
+}
+
+/* Editando un mensaje propio */
+.msg-editar-input{
+    width:100%;
+    font-size:0.9rem;
+    font-family:inherit;
+    border:1px solid var(--accent);
+    border-radius:6px;
+    padding:4px 6px;
+    background:rgba(255,255,255,0.8);
+}
+.msg-editado-tag{
+    font-size:0.65rem;
+    opacity:0.5;
+    margin-left:4px;
+}
+
 /* Composer estilo pill, tema crema */
 #form-chat{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
 #form-chat .fila-botones{ display:flex; gap:8px; justify-content:center; }
@@ -236,7 +342,7 @@ main{
     align-items:center;
     justify-content:center;
 }
-#btn-adjuntar-chat, #btn-camara-chat, #btn-ubicacion-chat, #btn-evento-chat{
+#btn-adjuntar-chat, #btn-camara-chat, #btn-microfono-chat, #btn-una-vez-chat, #btn-ubicacion-chat, #btn-evento-chat{
     padding:6px 10px;
     border:none;
     border-radius:10px;
@@ -362,12 +468,73 @@ main{
     opacity:1;
     transform:translateX(-50%) translateY(0);
 }
+
+/* MENSAJES "VER UNA VEZ" */
+#btn-una-vez-chat.activo, #btn-microfono-chat.activo{
+    background:var(--accent);
+    color:#fff;
+    border-radius:50%;
+}
+.media-una-vez{
+    margin-top:6px;
+    padding:8px 12px;
+    border-radius:10px;
+    font-size:0.85rem;
+    display:inline-block;
+}
+.media-una-vez.abrir{
+    background:var(--accent);
+    color:white;
+    cursor:pointer;
+    font-weight:bold;
+}
+.media-una-vez.visto, .media-una-vez.enviado{
+    background:rgba(0,0,0,0.08);
+    color:var(--text-main);
+    opacity:0.7;
+    font-style:italic;
+}
+.visor-una-vez{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.92);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:9600;
+}
+.visor-una-vez.activo{ display:flex; }
+.visor-una-vez img, .visor-una-vez video{
+    max-width:92%;
+    max-height:80vh;
+    border-radius:10px;
+}
+.visor-una-vez audio{ width:85%; }
+#btn-cerrar-visor-una-vez{
+    position:absolute;
+    top:20px;
+    right:20px;
+    background:rgba(255,255,255,0.15);
+    color:white;
+    border:none;
+    border-radius:50%;
+    width:36px;
+    height:36px;
+    font-size:1.1rem;
+    cursor:pointer;
+}
 </style>
 </head>
 
 <body>
 
 <div id="mensaje-fantasma"></div>
+<div id="selector-emoji" class="selector-emoji"></div>
+
+<div id="visor-una-vez" class="visor-una-vez">
+<button type="button" id="btn-cerrar-visor-una-vez">✖</button>
+<div id="visor-una-vez-contenido"></div>
+</div>
 
 <div id="loading-screen">
 <h1>MichiHub</h1>
@@ -423,11 +590,17 @@ main{
 </div>
 </div>
 <form id="form-chat" onsubmit="return false;">
+<div id="barra-respondiendo">
+<span id="barra-respondiendo-texto"></span>
+<button type="button" id="btn-cancelar-respuesta">✖</button>
+</div>
 <input type="file" id="input-media-chat" accept="image/*,video/*,audio/*" style="display:none;">
 <input type="file" id="input-camara-chat" accept="image/*" capture="environment" style="display:none;">
 <div class="fila-botones">
 <button type="button" id="btn-adjuntar-chat" title="Adjuntar foto, video o audio">📎</button>
 <button type="button" id="btn-camara-chat" title="Tomar foto">📷</button>
+<button type="button" id="btn-microfono-chat" title="Nota de voz">🎤</button>
+<button type="button" id="btn-una-vez-chat" title="Ver una vez (para la próxima foto, video o nota de voz)">🔥</button>
 <button type="button" id="btn-ubicacion-chat" title="Compartir ubicación">📍</button>
 <button type="button" id="btn-evento-chat" title="Compartir evento">📅</button>
 </div>
@@ -946,15 +1119,17 @@ configurarPWA();
     }
 
     function notificarMensajeNuevo(msg){
+        if(msg.usuario === obtenerNombreUsuario()) return; // no sonar por tu propio mensaje
+
+        reproducirMeow(); // 🐱 sonido de gatito cada vez que llega un mensaje, esté o no abierto el chat
+
         if(!("Notification" in window)) return;
         if(Notification.permission !== "granted") return;
-        if(document.visibilityState === "visible") return; // app abierta: no molestar
-        if(msg.usuario === obtenerNombreUsuario()) return; // no notificar tu propio mensaje
+        if(document.visibilityState === "visible") return; // app abierta: solo el sonido, sin notificación del sistema
 
         let mencionado = fueMencionado(msg.texto, obtenerNombreUsuario());
         let titulo = mencionado ? `Michihub — ${msg.usuario} te mencionó` : `Michihub — ${msg.usuario}`;
 
-        reproducirMeow();
         new Notification(titulo, {
             body: msg.texto,
             icon: "icon-192.png"
@@ -976,6 +1151,22 @@ configurarPWA();
 
     function renderizarMedia(msg){
         if(!msg.media_url) return "";
+
+        if(msg.ver_una_vez && (msg.media_tipo === "imagen" || msg.media_tipo === "video" || msg.media_tipo === "audio")){
+            if(msg.visto){
+                return `<div class="media-una-vez visto">👁️ Visto</div>`;
+            }
+            const miCorreo = obtenerCorreoUsuario();
+            const esMio = msg.correo && miCorreo && msg.correo === miCorreo;
+            if(esMio){
+                return `<div class="media-una-vez enviado">🔒 Enviado para ver una vez</div>`;
+            }
+            const etiqueta = msg.media_tipo === "video" ? "🔒 Toca para ver el video (una vez)"
+                : msg.media_tipo === "audio" ? "🔒 Toca para escuchar la nota de voz (una vez)"
+                : "🔒 Toca para ver la foto (una vez)";
+            return `<div class="media-una-vez abrir">${etiqueta}</div>`;
+        }
+
         if(msg.media_tipo === "imagen"){
             return `<img src="${msg.media_url}" class="media-chat">`;
         }
@@ -1009,6 +1200,58 @@ configurarPWA();
 
     let contadorMensajesTotal = 0;
 
+    /* Cita (mensaje respondido) */
+    function renderizarCita(msg){
+        if(!msg.respuesta_a_id) return "";
+        const textoCorto = (msg.respuesta_a_texto || "").slice(0, 80);
+        return `<div class="msg-cita"><b>${escaparHTML(msg.respuesta_a_usuario || "")}</b>: ${escaparHTML(textoCorto)}</div>`;
+    }
+
+    /* Barra de reacciones existentes en el mensaje */
+    function renderizarReacciones(reacciones){
+        if(!reacciones || Object.keys(reacciones).length === 0) return "";
+        const correo = obtenerCorreoUsuario() || obtenerNombreUsuario();
+        let html = "";
+        for(const emoji in reacciones){
+            const lista = reacciones[emoji] || [];
+            if(!lista.length) continue;
+            const mia = lista.includes(correo);
+            html += `<span class="msg-reaccion${mia ? ' mia' : ''}" data-emoji-click="${emoji}">${emoji} ${lista.length}</span>`;
+        }
+        return html ? `<div class="msg-reacciones">${html}</div>` : "";
+    }
+
+    /* Botones de responder / reaccionar / editar / borrar (solo dueño ve editar y borrar) */
+    function renderizarAcciones(msg){
+        const correo = obtenerCorreoUsuario();
+        const nombre = obtenerNombreUsuario();
+        const esMio = (msg.correo && correo && msg.correo === correo) || msg.usuario === nombre;
+
+        let botones = `<button type="button" class="btn-responder" title="Responder">↩️</button>`;
+        botones += `<button type="button" class="btn-reaccionar" title="Reaccionar">😊</button>`;
+        if(esMio && !msg.media_url){
+            botones += `<button type="button" class="btn-editar" title="Editar">✏️</button>`;
+        }
+        if(esMio){
+            botones += `<button type="button" class="btn-borrar-propio" title="Eliminar">🗑️</button>`;
+        }
+        return `<div class="msg-acciones">${botones}</div>`;
+    }
+
+    function construirContenidoMensaje(msg, colorUsuario, badgeHTML, hora){
+        return `
+            <div class="msg-cabecera">
+                <span class="msg-nombre">${escaparHTML(msg.usuario)}</span>
+                ${badgeHTML}
+            </div>
+            ${renderizarCita(msg)}
+            <div class="msg-texto">${resaltarMenciones(msg.texto)}${renderizarMedia(msg)}${msg.editado ? '<span class="msg-editado-tag">(editado)</span>' : ''}</div>
+            ${renderizarReacciones(msg.reacciones)}
+            <div class="msg-hora">${hora}</div>
+            ${renderizarAcciones(msg)}
+        `;
+    }
+
     function mostrarMensajeChat(msg){
         if(esBloqueadoPorMi(msg.usuario)) return; // ocultar mensajes de usuarios que YO bloqueé
 
@@ -1018,6 +1261,10 @@ configurarPWA();
 
         let p = document.createElement("div");
         p.dataset.msgId = msg.id;
+        p.dataset.msgUsuario = msg.usuario || "";
+        p.dataset.msgTexto = msg.texto || "";
+        p.dataset.mediaUrl = msg.media_url || "";
+        p.dataset.mediaTipo = msg.media_tipo || "";
         p.className = "msg-burbuja";
 
         const media = renderizarMedia(msg);
@@ -1052,18 +1299,194 @@ configurarPWA();
                 ${enLinea ? '<span class="dot-online"></span>' : ''}
             </div>
             <div class="msg-contenido" style="--user-color:${colorUsuario};">
-                <div class="msg-cabecera">
-                    <span class="msg-nombre">${escaparHTML(msg.usuario)}</span>
-                    ${badgeHTML}
-                </div>
-                <div class="msg-texto">${resaltarMenciones(msg.texto)}${media}</div>
-                <div class="msg-hora">${hora}</div>
+                ${construirContenidoMensaje(msg, colorUsuario, badgeHTML, hora)}
             </div>
         `;
 
         mensajesDiv.appendChild(p);
         mensajesDiv.scrollTop = mensajesDiv.scrollHeight;
     }
+
+    /* Vuelve a pintar un mensaje ya existente (tras editarlo o reaccionar) */
+    function actualizarMensajeEnDOM(msg){
+        const p = mensajesDiv.querySelector(`[data-msg-id="${msg.id}"]`);
+        if(!p) return;
+        p.dataset.msgTexto = msg.texto || "";
+
+        const contenedor = p.querySelector(".msg-contenido");
+        if(!contenedor) return;
+
+        const colorUsuario = colorParaUsuario(msg.usuario);
+        const esMensajeAdmin = msg.usuario && msg.usuario !== "Anónimo" && esNombreAdmin(msg.usuario);
+        const badgeHTML = esMensajeAdmin ? `<span class="msg-badge">🛡️ CEO</span>` : "";
+        const hora = msg.created_at ? formatearHora(msg.created_at) : "";
+
+        contenedor.innerHTML = construirContenidoMensaje(msg, colorUsuario, badgeHTML, hora);
+    }
+
+    /* ===== REACCIONES, RESPUESTAS Y EDICIÓN ===== */
+    const EMOJIS_REACCION = ["👍","❤️","😂","😮","😢","🙏"];
+    const selectorEmojiEl = document.getElementById("selector-emoji");
+    let idMensajeParaReaccion = null;
+
+    function cerrarSelectorEmoji(){
+        selectorEmojiEl.classList.remove("activo");
+        idMensajeParaReaccion = null;
+    }
+
+    function abrirSelectorEmoji(id, botonEl){
+        idMensajeParaReaccion = id;
+        selectorEmojiEl.innerHTML = EMOJIS_REACCION.map(e => `<span data-emoji="${e}">${e}</span>`).join("");
+        const rect = botonEl.getBoundingClientRect();
+        selectorEmojiEl.style.top = (window.scrollY + rect.top - 46) + "px";
+        selectorEmojiEl.style.left = (window.scrollX + rect.left - 10) + "px";
+        selectorEmojiEl.classList.add("activo");
+    }
+
+    selectorEmojiEl.addEventListener("click", async (e) => {
+        const span = e.target.closest("span[data-emoji]");
+        if(!span || !idMensajeParaReaccion) return;
+        await reaccionarMensaje(idMensajeParaReaccion, span.dataset.emoji);
+        cerrarSelectorEmoji();
+    });
+
+    document.addEventListener("click", (e) => {
+        if(!selectorEmojiEl.contains(e.target) && !e.target.closest(".btn-reaccionar")){
+            cerrarSelectorEmoji();
+        }
+    });
+
+    async function reaccionarMensaje(id, emoji){
+        const correo = obtenerCorreoUsuario() || obtenerNombreUsuario();
+        const { data } = await supabaseChat.from("mensajes").select("reacciones").eq("id", id).maybeSingle();
+        const actuales = (data && data.reacciones) ? data.reacciones : {};
+        const yaReaccionoConEste = Array.isArray(actuales[emoji]) && actuales[emoji].includes(correo);
+
+        const nuevas = {};
+        for(const key in actuales){
+            const lista = (actuales[key] || []).filter(c => c !== correo);
+            if(lista.length) nuevas[key] = lista;
+        }
+        if(!yaReaccionoConEste){
+            nuevas[emoji] = [...(nuevas[emoji] || []), correo];
+        }
+        await supabaseChat.from("mensajes").update({ reacciones: nuevas }).eq("id", id);
+    }
+
+    /* Responder citando un mensaje */
+    let respondiendoA = null;
+    const barraRespondiendo = document.getElementById("barra-respondiendo");
+    const barraRespondiendoTexto = document.getElementById("barra-respondiendo-texto");
+    const btnCancelarRespuesta = document.getElementById("btn-cancelar-respuesta");
+
+    function iniciarRespuesta(id, usuario, texto){
+        respondiendoA = { id, usuario, texto: (texto || "").slice(0, 120) };
+        barraRespondiendoTexto.textContent = `Respondiendo a ${usuario}: ${respondiendoA.texto}`;
+        barraRespondiendo.classList.add("activo");
+        inputTexto.focus();
+    }
+
+    function cancelarRespuesta(){
+        respondiendoA = null;
+        barraRespondiendo.classList.remove("activo");
+    }
+
+    btnCancelarRespuesta.addEventListener("click", cancelarRespuesta);
+
+    /* Editar un mensaje propio en el momento */
+    function iniciarEdicionMensaje(contenedorMsg, id){
+        const textoDiv = contenedorMsg.querySelector(".msg-texto");
+        if(!textoDiv || textoDiv.tagName === "TEXTAREA") return;
+        const textoActual = contenedorMsg.closest(".msg-burbuja").dataset.msgTexto || "";
+
+        const input = document.createElement("textarea");
+        input.className = "msg-editar-input";
+        input.value = textoActual;
+        textoDiv.replaceWith(input);
+        input.focus();
+
+        let yaGuardado = false;
+        async function guardar(){
+            if(yaGuardado) return;
+            yaGuardado = true;
+            const nuevoTexto = input.value.trim();
+            if(!nuevoTexto || nuevoTexto === textoActual) return;
+
+            const categoriaProhibida = detectarContenidoProhibido(nuevoTexto);
+            if(categoriaProhibida){
+                const usuario = obtenerNombreUsuario();
+                const correo = obtenerCorreoUsuario();
+                await aplicarInfraccionAutomatica(usuario, correo, categoriaProhibida);
+                return; // no se guarda la edición si tiene contenido prohibido
+            }
+            await supabaseChat.from("mensajes").update({ texto: nuevoTexto, editado: true }).eq("id", id);
+        }
+
+        input.addEventListener("keydown", (e) => {
+            if(e.key === "Enter" && !e.shiftKey){
+                e.preventDefault();
+                guardar();
+            }
+        });
+        input.addEventListener("blur", guardar);
+    }
+
+    /* Visor de mensajes "ver una vez" */
+    const visorUnaVez = document.getElementById("visor-una-vez");
+    const visorUnaVezContenido = document.getElementById("visor-una-vez-contenido");
+
+    async function abrirMediaUnaVez(id, tipo, url){
+        let html = "";
+        if(tipo === "imagen") html = `<img src="${url}">`;
+        else if(tipo === "video") html = `<video src="${url}" controls autoplay></video>`;
+        else if(tipo === "audio") html = `<audio src="${url}" controls autoplay></audio>`;
+        else return;
+
+        visorUnaVezContenido.innerHTML = html;
+        visorUnaVez.classList.add("activo");
+
+        await supabaseChat.from("mensajes").update({ visto: true }).eq("id", id);
+    }
+
+    document.getElementById("btn-cerrar-visor-una-vez").addEventListener("click", () => {
+        visorUnaVez.classList.remove("activo");
+        visorUnaVezContenido.innerHTML = "";
+    });
+
+    /* Delegación de clics en botones de cada mensaje (responder, reaccionar, editar, borrar) */
+    mensajesDiv.addEventListener("click", async (e) => {
+        const burbuja = e.target.closest(".msg-burbuja");
+        if(!burbuja) return;
+        const id = burbuja.dataset.msgId;
+
+        if(e.target.closest(".media-una-vez.abrir")){
+            await abrirMediaUnaVez(id, burbuja.dataset.mediaTipo, burbuja.dataset.mediaUrl);
+            return;
+        }
+        if(e.target.closest(".btn-responder")){
+            iniciarRespuesta(id, burbuja.dataset.msgUsuario, burbuja.dataset.msgTexto);
+            return;
+        }
+        if(e.target.closest(".btn-reaccionar")){
+            abrirSelectorEmoji(id, e.target.closest(".btn-reaccionar"));
+            return;
+        }
+        const reaccionBadge = e.target.closest(".msg-reaccion");
+        if(reaccionBadge){
+            await reaccionarMensaje(id, reaccionBadge.dataset.emojiClick);
+            return;
+        }
+        if(e.target.closest(".btn-editar")){
+            iniciarEdicionMensaje(burbuja.querySelector(".msg-contenido"), id);
+            return;
+        }
+        if(e.target.closest(".btn-borrar-propio")){
+            if(confirm("¿Eliminar este mensaje?")){
+                await supabaseChat.from("mensajes").delete().eq("id", id);
+            }
+            return;
+        }
+    });
 
     async function cargarMensajesChat(){
         const { data, error } = await supabaseChat
@@ -1175,18 +1598,32 @@ configurarPWA();
 
         const { error } = await supabaseChat
             .from("mensajes")
-            .insert([{ usuario, texto, correo, avatar_url: obtenerFotoUsuario() }]);
+            .insert([{
+                usuario, texto, correo, avatar_url: obtenerFotoUsuario(),
+                respuesta_a_id: respondiendoA ? respondiendoA.id : null,
+                respuesta_a_usuario: respondiendoA ? respondiendoA.usuario : null,
+                respuesta_a_texto: respondiendoA ? respondiendoA.texto : null
+            }]);
 
         if(error){
             console.error("Error enviando mensaje del chat:", error);
             return;
         }
         inputTexto.value = "";
+        cancelarRespuesta();
     }
 
     btnEnviar.addEventListener("click", enviarMensajeChat);
 
     /* ADJUNTAR ARCHIVOS (fotos, videos, audios) y CÁMARA (tomar foto) */
+    /* Toggle "ver una vez" para la próxima foto, video o nota de voz */
+    let modoVerUnaVez = false;
+    const btnUnaVez = document.getElementById("btn-una-vez-chat");
+    btnUnaVez.addEventListener("click", () => {
+        modoVerUnaVez = !modoVerUnaVez;
+        btnUnaVez.classList.toggle("activo", modoVerUnaVez);
+    });
+
     async function subirYEnviarMedia(archivo){
         if(!archivo) return;
 
@@ -1196,6 +1633,7 @@ configurarPWA();
         else if(archivo.type.startsWith("audio/")) tipo = "audio";
 
         const nombreArchivo = `${Date.now()}_${archivo.name}`;
+        const verUnaVezActivo = modoVerUnaVez;
 
         const { error: errorSubida } = await supabaseChat
             .storage.from("chat-media")
@@ -1218,8 +1656,14 @@ configurarPWA();
             correo: obtenerCorreoUsuario(),
             media_url: urlData.publicUrl,
             media_tipo: tipo,
-            avatar_url: obtenerFotoUsuario()
+            avatar_url: obtenerFotoUsuario(),
+            ver_una_vez: verUnaVezActivo
         }]);
+
+        if(verUnaVezActivo){
+            modoVerUnaVez = false;
+            btnUnaVez.classList.remove("activo");
+        }
     }
 
     btnAdjuntar.addEventListener("click", () => inputMedia.click());
@@ -1237,6 +1681,44 @@ configurarPWA();
     inputCamara.addEventListener("change", async () => {
         await subirYEnviarMedia(inputCamara.files[0]);
         inputCamara.value = "";
+    });
+
+    /* NOTA DE VOZ (grabar y enviar con el micrófono) */
+    const btnMicrofono = document.getElementById("btn-microfono-chat");
+    let grabadoraVoz = null;
+    let fragmentosVoz = [];
+    let grabandoVoz = false;
+
+    btnMicrofono.addEventListener("click", async () => {
+        if(grabandoVoz){
+            grabadoraVoz.stop();
+            grabandoVoz = false;
+            btnMicrofono.classList.remove("activo");
+            btnMicrofono.title = "Nota de voz";
+            return;
+        }
+
+        try{
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            fragmentosVoz = [];
+            grabadoraVoz = new MediaRecorder(stream);
+
+            grabadoraVoz.addEventListener("dataavailable", (e) => fragmentosVoz.push(e.data));
+            grabadoraVoz.addEventListener("stop", async () => {
+                stream.getTracks().forEach(track => track.stop());
+                const blob = new Blob(fragmentosVoz, { type: "audio/webm" });
+                const archivo = new File([blob], `nota_voz_${Date.now()}.webm`, { type: "audio/webm" });
+                await subirYEnviarMedia(archivo);
+            });
+
+            grabadoraVoz.start();
+            grabandoVoz = true;
+            btnMicrofono.classList.add("activo");
+            btnMicrofono.title = "Detener grabación";
+        }catch(err){
+            alert("No se pudo acceder al micrófono.");
+            console.error(err);
+        }
     });
 
     /* COMPARTIR UBICACIÓN */
@@ -1299,6 +1781,11 @@ configurarPWA();
                 const elemento = mensajesDiv.querySelector(`[data-msg-id="${payload.old.id}"]`);
                 if(elemento) elemento.remove();
             }
+        )
+        .on(
+            "postgres_changes",
+            { event: "UPDATE", schema: "public", table: "mensajes" },
+            (payload) => actualizarMensajeEnDOM(payload.new)
         )
         .subscribe();
 
