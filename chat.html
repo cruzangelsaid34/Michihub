@@ -523,10 +523,57 @@ main{
     font-size:1.1rem;
     cursor:pointer;
 }
+
+/* AVISO DE PRIVACIDAD (se ve mientras la app está en segundo plano, evita vistas previas en el multitarea) */
+#privacidad-overlay{
+    position:fixed;
+    inset:0;
+    background:var(--bg-base);
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    z-index:99999;
+    text-align:center;
+    padding:20px;
+}
+#privacidad-overlay.activo{ display:flex; }
+#privacidad-overlay h2{
+    font-family:'Playfair Display',serif;
+    color:var(--text-main);
+}
+#privacidad-overlay p{
+    color:var(--text-main);
+    opacity:0.75;
+    font-size:0.85rem;
+    max-width:280px;
+}
+
+/* Aviso fijo de "no capturas" con correo de contacto */
+#aviso-no-capturas{
+    text-align:center;
+    font-size:0.68rem;
+    color:var(--text-main);
+    opacity:0.55;
+    margin-top:4px;
+}
+
+/* Dificultar guardar imágenes/videos desde el chat (no impide capturas de pantalla) */
+.media-chat{
+    -webkit-touch-callout:none;
+    -webkit-user-select:none;
+    user-select:none;
+}
 </style>
 </head>
 
 <body>
+
+<div id="privacidad-overlay">
+<h2>🔒 MichiHub</h2>
+<p>Contenido oculto por privacidad mientras la app está en segundo plano.</p>
+</div>
 
 <div id="mensaje-fantasma"></div>
 <div id="selector-emoji" class="selector-emoji"></div>
@@ -609,6 +656,7 @@ main{
 <button id="btn-enviar-chat">➤</button>
 </div>
 </form>
+<div id="aviso-no-capturas">📵 Prohibido tomar capturas de pantalla o grabar este chat. Reportar: michihub@hotmail.com</div>
 </div>
 <button id="btn-notificaciones">🔔 Activar notificaciones</button>
 </div>
@@ -1788,6 +1836,20 @@ configurarPWA();
             (payload) => actualizarMensajeEnDOM(payload.new)
         )
         .subscribe();
+
+    /* PRIVACIDAD: ocultar el contenido cuando la app pasa a segundo plano (evita vistas previas en el multitarea) */
+    const privacidadOverlay = document.getElementById("privacidad-overlay");
+    document.addEventListener("visibilitychange", () => {
+        privacidadOverlay.classList.toggle("activo", document.hidden);
+    });
+
+    /* Dificultar guardar fotos/videos con clic derecho o mantener presionado (no bloquea capturas de pantalla) */
+    mensajesDiv.addEventListener("contextmenu", (e) => {
+        if(e.target.closest(".media-chat")) e.preventDefault();
+    });
+    mensajesDiv.addEventListener("dragstart", (e) => {
+        if(e.target.closest(".media-chat")) e.preventDefault();
+    });
 
     cargarMensajesChat();
 
