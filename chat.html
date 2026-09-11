@@ -236,7 +236,7 @@ main{
     align-items:center;
     justify-content:center;
 }
-#btn-adjuntar-chat, #btn-ubicacion-chat, #btn-evento-chat{
+#btn-adjuntar-chat, #btn-camara-chat, #btn-ubicacion-chat, #btn-evento-chat{
     padding:6px 10px;
     border:none;
     border-radius:10px;
@@ -424,8 +424,10 @@ main{
 </div>
 <form id="form-chat" onsubmit="return false;">
 <input type="file" id="input-media-chat" accept="image/*,video/*,audio/*" style="display:none;">
+<input type="file" id="input-camara-chat" accept="image/*" capture="environment" style="display:none;">
 <div class="fila-botones">
 <button type="button" id="btn-adjuntar-chat" title="Adjuntar foto, video o audio">📎</button>
+<button type="button" id="btn-camara-chat" title="Tomar foto">📷</button>
 <button type="button" id="btn-ubicacion-chat" title="Compartir ubicación">📍</button>
 <button type="button" id="btn-evento-chat" title="Compartir evento">📅</button>
 </div>
@@ -1184,11 +1186,8 @@ configurarPWA();
 
     btnEnviar.addEventListener("click", enviarMensajeChat);
 
-    /* ADJUNTAR ARCHIVOS (fotos, videos, audios) */
-    btnAdjuntar.addEventListener("click", () => inputMedia.click());
-
-    inputMedia.addEventListener("change", async () => {
-        const archivo = inputMedia.files[0];
+    /* ADJUNTAR ARCHIVOS (fotos, videos, audios) y CÁMARA (tomar foto) */
+    async function subirYEnviarMedia(archivo){
         if(!archivo) return;
 
         let tipo = "archivo";
@@ -1205,7 +1204,6 @@ configurarPWA();
         if(errorSubida){
             alert("No se pudo subir el archivo.");
             console.error(errorSubida);
-            inputMedia.value = "";
             return;
         }
 
@@ -1222,8 +1220,23 @@ configurarPWA();
             media_tipo: tipo,
             avatar_url: obtenerFotoUsuario()
         }]);
+    }
 
+    btnAdjuntar.addEventListener("click", () => inputMedia.click());
+
+    inputMedia.addEventListener("change", async () => {
+        await subirYEnviarMedia(inputMedia.files[0]);
         inputMedia.value = "";
+    });
+
+    const btnCamara = document.getElementById("btn-camara-chat");
+    const inputCamara = document.getElementById("input-camara-chat");
+
+    btnCamara.addEventListener("click", () => inputCamara.click());
+
+    inputCamara.addEventListener("change", async () => {
+        await subirYEnviarMedia(inputCamara.files[0]);
+        inputCamara.value = "";
     });
 
     /* COMPARTIR UBICACIÓN */
