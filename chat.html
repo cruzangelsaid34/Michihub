@@ -338,10 +338,36 @@ main{
     0%{ transform:translateX(-100%); }
     100%{ transform:translateX(350%); }
 }
+
+/* MENSAJE FANTASMA (aviso privado y temporal, solo visible para quien lo recibe) */
+#mensaje-fantasma{
+    position:fixed;
+    left:50%;
+    bottom:90px;
+    transform:translateX(-50%) translateY(20px);
+    max-width:85%;
+    background:rgba(74,66,56,0.92);
+    color:#f4f0ea;
+    padding:12px 18px;
+    border-radius:14px;
+    font-size:0.9rem;
+    text-align:center;
+    box-shadow:0 4px 16px rgba(0,0,0,0.25);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.4s ease, transform 0.4s ease;
+    z-index:9999;
+}
+#mensaje-fantasma.visible{
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+}
 </style>
 </head>
 
 <body>
+
+<div id="mensaje-fantasma"></div>
 
 <div id="loading-screen">
 <h1>MichiHub</h1>
@@ -549,6 +575,18 @@ configurarPWA();
         localStorage.setItem("michihubBloqueados", JSON.stringify(lista));
     }
 
+    /* MENSAJE FANTASMA: aviso privado (solo lo ve quien lo recibe) que aparece y se borra solo */
+    function mostrarMensajeFantasma(texto, duracionMs = 4500){
+        const contenedor = document.getElementById("mensaje-fantasma");
+        if(!contenedor) return;
+        contenedor.textContent = texto;
+        contenedor.classList.add("visible");
+        clearTimeout(contenedor._timeoutFantasma);
+        contenedor._timeoutFantasma = setTimeout(() => {
+            contenedor.classList.remove("visible");
+        }, duracionMs);
+    }
+
     /* ===== FILTRO AUTOMÁTICO DE CONTENIDO PROHIBIDO ===== */
     const PALABRAS_PROHIBIDAS = {
         "drogas": ["droga","drogas","cocaina","cocaína","marihuana","mariguana","weed","perico","cristal","lsd","heroina","heroína","metanfetamina","crack","fentanilo"],
@@ -583,7 +621,10 @@ configurarPWA();
 
     // Aplica una infracción automática; a partir de la 3ª bloquea la cuenta 24h y a partir de la 6ª la suspende 5 días
     async function aplicarInfraccionAutomatica(usuario, correo, categoria){
-        if(!correo) return; // sin cuenta de Google detectada, no se puede vincular la restricción
+        if(!correo){
+            mostrarMensajeFantasma("⚠️ Tu mensaje fue bloqueado por contenido no permitido.");
+            return;
+        }
 
         const { data } = await supabaseChat.from("cuentas").select("*").eq("correo", correo).maybeSingle();
         const infraccionesActuales = (data && data.infracciones) ? data.infracciones : 0;
@@ -593,12 +634,15 @@ configurarPWA();
             const hasta = new Date(Date.now() + 5 * 24 * 60 * 60000).toISOString();
             await supabaseChat.from("cuentas").upsert({ correo, usuario, estado: "suspendida", hasta, infracciones: nuevasInfracciones });
             await publicarMensajeSistema(`⏸️ La cuenta de ${usuario} fue suspendida automáticamente por 5 días (contenido prohibido reiterado: ${categoria}).`);
+            mostrarMensajeFantasma(`⏸️ Tu cuenta fue suspendida 5 días por reincidir en contenido prohibido. Infracciones: ${nuevasInfracciones}.`);
         }else if(nuevasInfracciones >= 3){
             const hasta = new Date(Date.now() + 24 * 60 * 60000).toISOString();
             await supabaseChat.from("cuentas").upsert({ correo, usuario, estado: "bloqueada", hasta, infracciones: nuevasInfracciones });
             await publicarMensajeSistema(`⛔ La cuenta de ${usuario} fue bloqueada automáticamente por 24 horas (contenido prohibido: ${categoria}).`);
+            mostrarMensajeFantasma(`⛔ Tu cuenta fue bloqueada 24 horas por contenido prohibido. Infracciones: ${nuevasInfracciones}.`);
         }else{
             await supabaseChat.from("cuentas").upsert({ correo, usuario, infracciones: nuevasInfracciones });
+            mostrarMensajeFantasma(`⚠️ Mensaje bloqueado por contenido no permitido. Infracciones: ${nuevasInfracciones}/6.`);
         }
     }
 
@@ -1121,7 +1165,6 @@ configurarPWA();
             // FILTRO AUTOMÁTICO: droga, armas, alcohol, sexo y groserías
             const categoriaProhibida = detectarContenidoProhibido(texto);
             if(categoriaProhibida){
-                alert("Tu mensaje no se envió: contiene contenido no permitido.");
                 await aplicarInfraccionAutomatica(usuario, correo, categoriaProhibida);
                 inputTexto.value = "";
                 return;
