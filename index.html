@@ -798,7 +798,7 @@ function loadImageCORS(url){
         let img = new Image();
         img.crossOrigin = "anonymous";
         img.onload = () => resolve(img);
-        img.onerror = reject;
+        img.onerror = () => reject(new Error("No se pudo cargar la imagen (posible bloqueo CORS o de red): " + url));
         img.src = url;
     });
 }
@@ -995,7 +995,10 @@ async function generarImagenCredencial(nombre, codigo, fecha, hora, expiracion, 
         let y = (300 - h) / 2;
         ctx.drawImage(imgGato, x, y, w, h);
     }catch(err){
-        // si falla, se queda el fondo base
+        // DEBUG TEMPORAL: esto solo está aquí para ver por qué falla la carga
+        // de la imagen de fondo. Bórralo (o dime que lo quite) en cuanto tengamos el motivo.
+        console.error("Fondo de gato falló:", err);
+        alert("DEBUG fondo de gato: " + (err && err.message ? err.message : err));
     }
 
     // Overlay oscuro para que el texto se lea bien
