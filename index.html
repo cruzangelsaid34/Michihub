@@ -818,33 +818,54 @@ function marcarGatoUsado(url){
 }
 
 async function obtenerGatoAleatorio(){
-    // TheCatAPI sirve las imágenes desde cdn2.thecatapi.com con CORS habilitado,
-    // por lo que el canvas no queda "tainted" al usar toDataURL().
-    // Pedimos un lote grande y descartamos las que ya se usaron en credenciales anteriores.
+    // Openverse agrega imágenes de muchas fuentes distintas (Wikimedia, Flickr, museos, etc.),
+    // y no todas esas fuentes originales permiten CORS. Por eso, en vez de solo pedir la imagen,
+    // aquí mismo la CARGAMOS (loadImageCORS) y solo la damos por buena si de verdad se puede
+    // usar en el canvas; si una falla, se prueba con la siguiente candidata.
     let usados = new Set(getGatosUsados());
 
-    for(let intento = 0; intento < 5; intento++){
-        let res = await fetch("https://api.thecatapi.com/v1/images/search?limit=25");
-        if(!res.ok) throw new Error("Error en la petición");
+    async function buscarPagina(pagina){
+        let url = `https://api.openverse.org/v1/images/?q=cat&page_size=20&page=${pagina}&mime_type=image/jpeg,image/png`;
+        let res = await fetch(url);
+        if(!res.ok) throw new Error("Error en la petición a Openverse");
         let data = await res.json();
-        if(!data || !data.length) throw new Error("Sin resultados");
-
-        let nuevo = data.find(g => g.url && !usados.has(g.url));
-        if(nuevo){
-            marcarGatoUsado(nuevo.url);
-            return nuevo.url;
-        }
+        return (data && data.results) || [];
     }
 
-    // Si tras varios intentos todas las imágenes ya se usaron, reiniciamos el historial
-    // (probablemente ya se agotó el pool visto) y devolvemos una nueva de todas formas.
+    async function intentarConResultados(resultados){
+        for(let item of resultados){
+            if(!item.url || usados.has(item.url)) continue;
+            try{
+                let imgGato = await loadImageCORS(item.url);
+                marcarGatoUsado(item.url);
+                return imgGato;
+            }catch(err){
+                // esta imagen en particular no soporta CORS o no cargó: se prueba la siguiente
+            }
+        }
+        return null;
+    }
+
+    // Hasta 5 páginas aleatorias distintas del catálogo de Openverse
+    let paginasProbadas = new Set();
+    for(let intento = 0; intento < 5; intento++){
+        let pagina;
+        do{ pagina = Math.floor(Math.random() * 20) + 1; }while(paginasProbadas.has(pagina));
+        paginasProbadas.add(pagina);
+
+        let resultados = await buscarPagina(pagina);
+        let encontrada = await intentarConResultados(resultados);
+        if(encontrada) return encontrada;
+    }
+
+    // Si ya se usaron (o fallaron) todas las que hemos visto, reiniciamos el historial y
+    // probamos una última vez con una página nueva antes de rendirnos.
     localStorage.removeItem("gatosUsados");
-    let res = await fetch("https://api.thecatapi.com/v1/images/search");
-    if(!res.ok) throw new Error("Error en la petición");
-    let data = await res.json();
-    if(!data || !data.length || !data[0].url) throw new Error("Sin resultados");
-    marcarGatoUsado(data[0].url);
-    return data[0].url;
+    let resultados = await buscarPagina(Math.floor(Math.random() * 20) + 1);
+    let encontrada = await intentarConResultados(resultados);
+    if(encontrada) return encontrada;
+
+    throw new Error("No se encontró ninguna imagen de gato utilizable en Openverse");
 }
 
 function mostrarFormularioCredencial(){
@@ -986,8 +1007,7 @@ async function generarImagenCredencial(nombre, codigo, fecha, hora, expiracion, 
 
     // Imagen de gato de fondo (cover-fit)
     try{
-        let urlGato = await obtenerGatoAleatorio();
-        let imgGato = await loadImageCORS(urlGato);
+        let imgGato = await obtenerGatoAleatorio();
 
         let scale = Math.max(520 / imgGato.width, 300 / imgGato.height);
         let w = imgGato.width * scale;
