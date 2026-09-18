@@ -617,8 +617,6 @@ main{
 <a href="index.html">🏠 Inicio</a>
 <a href="chat.html" class="activo">💬 Chat</a>
 <a href="Radio.html">📻 Radio</a>
-<a href="documentos.html">📄 Docs</a>
-<a href="nube.html">☁️ Nube</a>
 </nav>
 
 <main>
@@ -1091,30 +1089,6 @@ configurarPWA();
         if(comando === "/abrirprivado"){
             await supabaseChat.from("configuracion_secciones").update({ cerrado: false }).eq("seccion", "privado");
             await publicarMensajeSistema("🔓 La sección Privado fue reabierta por el administrador.");
-            return true;
-        }
-
-        if(comando === "/cerrarnube"){
-            await supabaseChat.from("configuracion_secciones").update({ cerrado: true }).eq("seccion", "nube");
-            await publicarMensajeSistema("🔒 La sección Nube fue cerrada por el administrador.");
-            return true;
-        }
-
-        if(comando === "/abrirnube"){
-            await supabaseChat.from("configuracion_secciones").update({ cerrado: false }).eq("seccion", "nube");
-            await publicarMensajeSistema("🔓 La sección Nube fue reabierta por el administrador.");
-            return true;
-        }
-
-        if(comando === "/cerrardocumentos"){
-            await supabaseChat.from("configuracion_secciones").update({ cerrado: true }).eq("seccion", "documentos");
-            await publicarMensajeSistema("🔒 La sección Documentos fue cerrada por el administrador.");
-            return true;
-        }
-
-        if(comando === "/abrirdocumentos"){
-            await supabaseChat.from("configuracion_secciones").update({ cerrado: false }).eq("seccion", "documentos");
-            await publicarMensajeSistema("🔓 La sección Documentos fue reabierta por el administrador.");
             return true;
         }
 
