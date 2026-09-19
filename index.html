@@ -138,6 +138,19 @@ main{
 @keyframes atrapa-sube{from{transform:translateY(0);opacity:1}to{transform:translateY(-30px);opacity:0}}
 @media (prefers-reduced-motion:reduce){.atrapa-michi,.atrapa-punto{animation:none}}
 
+/* MICHI RUNNER */
+.runner-stats{display:flex;justify-content:space-around;font-weight:bold;margin-bottom:10px}
+.runner-canvas{display:block;width:100%;aspect-ratio:1;background:#fff;border-radius:8px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;cursor:pointer}
+.runner-canvas:focus-visible{outline:3px solid var(--text-main);outline-offset:2px}
+.runner-estado{text-align:center;font-size:0.9rem;margin:10px 0;min-height:1.3em}
+.runner-opciones{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.runner-etiqueta{font-weight:bold;font-size:0.85rem;text-align:center;opacity:0.8}
+.runner-fila{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.runner-opcion{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:6px 12px;border:1px solid var(--accent);border-radius:20px;background:#fff;color:var(--text-main);font-family:inherit;font-size:0.85rem;cursor:pointer}
+.runner-opcion[aria-pressed="true"]{background:var(--accent);color:#fff}
+.runner-opcion:focus-visible{outline:3px solid var(--text-main);outline-offset:2px}
+.runner-punto{width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,0.25);flex:0 0 auto}
+
 /* PANTALLA DE CARGA */
 #loading-screen{
     position:fixed;
@@ -466,6 +479,26 @@ Crear Credencial
 <button type="button" class="btn-accion" id="atrapa-boton">Jugar</button>
 </div>
 </div>
+
+<div class="card">
+<h2 class="card-title">🐾 Michi Runner</h2>
+<div class="runner-stats">
+<span>⭐ <span id="runner-puntos">0</span></span>
+<span>🏆 <span id="runner-record">0</span></span>
+</div>
+<canvas id="runner-canvas" class="runner-canvas" tabindex="0" role="img" aria-label="Michi Runner: toca la pantalla para saltar los obstáculos"></canvas>
+<p class="runner-estado" id="runner-estado" role="status" aria-live="polite">Toca la pantalla para saltar. ¡Esquiva cajas, plantas y más!</p>
+<div class="runner-opciones">
+<span class="runner-etiqueta">Elige tu michi</span>
+<div class="runner-fila" id="runner-michis"></div>
+<span class="runner-etiqueta">Elige el fondo</span>
+<div class="runner-fila" id="runner-fondos"></div>
+</div>
+<div class="atrapa-controles">
+<button type="button" class="btn-accion" id="runner-boton">Jugar</button>
+</div>
+</div>
+
 
 </div>
 
@@ -1699,6 +1732,707 @@ initMemory();
 
     boton.addEventListener("click", empezar);
 })();
+
+/* MICHI RUNNER
+   - El michi corre solo; tocar la pantalla (o Espacio / flecha arriba) lo hace saltar.
+   - Cajas, plantas, ovillos y libros: hay que esquivarlos. La velocidad sube poco a poco.
+   - Puntos por distancia recorrida. El récord, el michi y el fondo se guardan en este dispositivo.
+   - Se pausa sola si cambias de pestaña o si el juego sale de la pantalla. */
+(function(){
+    const canvas = document.getElementById("runner-canvas");
+    if(!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if(!ctx) return;
+
+    const elPuntos = document.getElementById("runner-puntos");
+    const elRecord = document.getElementById("runner-record");
+    const elEstado = document.getElementById("runner-estado");
+    const boton = document.getElementById("runner-boton");
+    const contMichis = document.getElementById("runner-michis");
+    const contFondos = document.getElementById("runner-fondos");
+
+    /* ---------- Medidas del mundo (se escalan al tamaño real de la pantalla) ---------- */
+    const W = 480, H = 480, GY = 384;      // ancho, alto y altura del suelo (canvas cuadrado, igual que Atrapa al Michi)
+    const MX = 70, MW = 38, MH = 30;       // posición y tamaño del michi
+    const GRAVEDAD = 1500, V_SALTO = 560;  // salto de ~105 px
+    const V_INI = 200, V_MAX = 480;        // velocidad en px por segundo
+
+    const CLAVE_RECORD = "michihubRecordRunner";
+    const CLAVE_MICHI = "michihubRunnerMichi";
+    const CLAVE_FONDO = "michihubRunnerFondo";
+
+    /* ---------- Michis y fondos ---------- */
+    const MICHIS = [
+        { id: "naranja", nombre: "Naranja", color: "#f2a154", cuerpo: "#f2a154", raya: "#d9822b", panza: "#fff1de", oreja: "#f7b7a3", ojo: "#2b2b2b" },
+        { id: "gris",    nombre: "Gris",    color: "#9aa5b1", cuerpo: "#9aa5b1", raya: "#78838f", panza: "#e6ebf0", oreja: "#e8b4bc", ojo: "#2b2b2b" },
+        { id: "negro",   nombre: "Negro",   color: "#3b3b46", cuerpo: "#3b3b46", raya: null,      panza: "#55556a", oreja: "#8a6f7a", ojo: "#ffd54a" },
+        { id: "blanco",  nombre: "Blanco",  color: "#fbf8f4", cuerpo: "#fbf8f4", raya: null,      panza: "#ffffff", oreja: "#f5b5c0", ojo: "#2b2b2b" },
+        { id: "calico",  nombre: "Calicó",  color: "#f2a154", cuerpo: "#fbf8f4", raya: null,      panza: "#ffffff", oreja: "#f5b5c0", ojo: "#2b2b2b", parches: true }
+    ];
+
+    const FONDOS = [
+        { id: "casa",      nombre: "Casa",      color: "#f1e6d6", cielo: ["#f6ecdd", "#eadcc7"], suelo: "#b98d63", linea: "#96704a", contorno: "rgba(0,0,0,0.28)" },
+        { id: "dia",       nombre: "Día",       color: "#cfe9f6", cielo: ["#bfe3f5", "#fdf6ec"], suelo: "#a9d18e", linea: "#86b56a", contorno: "rgba(0,0,0,0.28)" },
+        { id: "atardecer", nombre: "Atardecer", color: "#f6a1a9", cielo: ["#ffcf9f", "#f6a1a9"], suelo: "#8c5a5a", linea: "#6e4444", contorno: "rgba(0,0,0,0.3)" },
+        { id: "noche",     nombre: "Noche",     color: "#2f3a68", cielo: ["#131a35", "#2f3a68"], suelo: "#343c66", linea: "#4b5486", contorno: "rgba(255,255,255,0.6)" }
+    ];
+
+    // Estrellas fijas para el fondo de noche
+    const ESTRELLAS = [];
+    for(let i = 0; i < 28; i++){
+        ESTRELLAS.push({ x: (i * 97) % W, y: 19 + ((i * 53) % 240), r: 0.8 + (i % 3) * 0.5, f: i * 0.7 });
+    }
+
+    /* ---------- Obstáculos ---------- */
+    // ins = margen que no cuenta al chocar (más justo con el jugador)
+    const TIPOS = [
+        { id: "caja",      w: 30, h: 28, peso: 3,   ins: [3, 2] },
+        { id: "cajaAlta",  w: 28, h: 52, peso: 1.5, ins: [3, 2] },
+        { id: "cajaAncha", w: 46, h: 24, peso: 2,   ins: [3, 2] },
+        { id: "planta",    w: 30, h: 42, peso: 3,   ins: [7, 6] },
+        { id: "ovillo",    w: 24, h: 24, peso: 2,   ins: [3, 3] },
+        { id: "libros",    w: 34, h: 30, peso: 1.5, ins: [3, 2] }
+    ];
+    const PESO_TOTAL = TIPOS.reduce((suma, t) => suma + t.peso, 0);
+
+    function elegirTipo(){
+        let r = Math.random() * PESO_TOTAL;
+        for(const t of TIPOS){
+            r -= t.peso;
+            if(r <= 0) return t;
+        }
+        return TIPOS[0];
+    }
+
+    /* ---------- Almacenamiento (todo en este dispositivo) ---------- */
+    function leer(clave){
+        try{ return localStorage.getItem(clave); }catch(err){ return null; }
+    }
+    function guardar(clave, valor){
+        try{ localStorage.setItem(clave, String(valor)); }catch(err){ /* sin almacenamiento */ }
+    }
+
+    let record = parseInt(leer(CLAVE_RECORD), 10) || 0;
+    let michiSel = leer(CLAVE_MICHI);
+    let fondoSel = leer(CLAVE_FONDO);
+    if(!MICHIS.some((m) => m.id === michiSel)) michiSel = MICHIS[0].id;
+    if(!FONDOS.some((f) => f.id === fondoSel)) fondoSel = FONDOS[0].id;
+    elRecord.textContent = record;
+
+    /* ---------- Estado del juego ---------- */
+    let estado = "listo"; // listo | jugando | pausa | fin
+    let escala = 1;
+    let puntosF = 0;
+    let puntos = 0;
+    let dist = 0;
+    let velocidad = V_INI;
+    let y = GY - MH;
+    let vy = 0;
+    let enSuelo = true;
+    let buffer = 0;       // recuerda un toque justo antes de aterrizar
+    let fase = 0;         // animación de las patas
+    let obstaculos = [];
+    let faltaSpawn = 260;
+    let ultimoT = 0;
+    let rafId = 0;
+    let tFin = 0;
+
+    function michiActual(){ return MICHIS.find((m) => m.id === michiSel) || MICHIS[0]; }
+    function fondoActual(){ return FONDOS.find((f) => f.id === fondoSel) || FONDOS[0]; }
+
+    /* ---------- Dibujo ---------- */
+    function repetir(paso, desplazamiento, dibujarUno){
+        const inicio = -(((desplazamiento % paso) + paso) % paso);
+        for(let x = inicio; x < W + paso; x += paso) dibujarUno(x);
+    }
+
+    function nube(x, yy){
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        [[0, 0, 26, 11], [20, -7, 18, 10], [-18, -4, 15, 8]].forEach((e) => {
+            ctx.beginPath();
+            ctx.ellipse(x + e[0], yy + e[1], e[2], e[3], 0, 0, Math.PI * 2);
+            ctx.fill();
+        });
+    }
+
+    function colinas(paso, factor, color, alto){
+        ctx.fillStyle = color;
+        repetir(paso, dist * factor, (x) => {
+            ctx.beginPath();
+            ctx.ellipse(x + paso / 2, GY, paso * 0.62, alto, 0, Math.PI, 0);
+            ctx.fill();
+        });
+    }
+
+    function dibujarFondo(f, t){
+        const g = ctx.createLinearGradient(0, 0, 0, GY);
+        g.addColorStop(0, f.cielo[0]);
+        g.addColorStop(1, f.cielo[1]);
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, GY);
+
+        if(f.id === "casa"){
+            // ventanas y cuadros que se mueven despacio
+            repetir(300, dist * 0.15, (x) => {
+                ctx.fillStyle = "#fbfaf7";
+                ctx.fillRect(x + 20, 34, 96, 108);
+                ctx.fillStyle = "#cfe9f6";
+                ctx.fillRect(x + 26, 40, 84, 96);
+                ctx.fillStyle = "rgba(255,255,255,0.7)";
+                ctx.fillRect(x + 32, 46, 18, 40);
+                ctx.fillStyle = "#fbfaf7";
+                ctx.fillRect(x + 66, 40, 4, 96);
+                ctx.fillRect(x + 26, 86, 84, 4);
+                ctx.fillStyle = "#c9a37a";
+                ctx.fillRect(x + 180, 50, 46, 58);
+                ctx.fillStyle = "#f6e7c8";
+                ctx.fillRect(x + 185, 55, 36, 48);
+                ctx.fillStyle = "#e58fb1";
+                ctx.beginPath();
+                ctx.arc(x + 203, 79, 10, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.fillStyle = "rgba(0,0,0,0.08)";
+            ctx.fillRect(0, GY - 8, W, 8); // zócalo
+        }else if(f.id === "dia"){
+            ctx.fillStyle = "#ffe27a";
+            ctx.beginPath();
+            ctx.arc(410, 90, 26, 0, Math.PI * 2);
+            ctx.fill();
+            repetir(240, dist * 0.08, (x) => nube(x + 60, 96));
+            repetir(320, dist * 0.12, (x) => nube(x + 200, 176));
+            colinas(260, 0.2, "#bfdcae", 46);
+            colinas(190, 0.35, "#a5cf94", 30);
+        }else if(f.id === "atardecer"){
+            ctx.fillStyle = "#ffe6b0";
+            ctx.beginPath();
+            ctx.arc(330, GY - 30, 50, Math.PI, 0);
+            ctx.fill();
+            repetir(300, dist * 0.06, (x) => nube(x + 90, 112));
+            colinas(280, 0.15, "#d28a86", 52);
+            colinas(200, 0.3, "#b96c6c", 32);
+        }else{
+            ESTRELLAS.forEach((e) => {
+                ctx.globalAlpha = 0.55 + 0.45 * Math.sin(t * 2 + e.f);
+                ctx.fillStyle = "#fffbe6";
+                ctx.beginPath();
+                ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = "#fff3c4";
+            ctx.beginPath();
+            ctx.arc(400, 96, 22, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = f.cielo[0];
+            ctx.beginPath();
+            ctx.arc(410, 86, 20, 0, Math.PI * 2);
+            ctx.fill();
+            colinas(280, 0.15, "#252d55", 48);
+            colinas(200, 0.3, "#1d244a", 30);
+        }
+
+        // suelo
+        ctx.fillStyle = f.suelo;
+        ctx.fillRect(0, GY, W, H - GY);
+        ctx.fillStyle = f.linea;
+        ctx.fillRect(0, GY, W, 3);
+        if(f.id === "casa"){
+            repetir(70, dist, (x) => ctx.fillRect(x, GY + 3, 2, H - GY)); // tablones
+        }else{
+            repetir(46, dist, (x) => ctx.fillRect(x, GY + 18, 20, 3));
+            repetir(70, dist * 1.0 + 25, (x) => ctx.fillRect(x, GY + 38, 14, 3));
+        }
+    }
+
+    function dibujarMichi(m, contorno, saltando){
+        const px = MX, py = y;
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+
+        // cola
+        const bal = saltando ? 5 : Math.sin(fase * 0.7) * 6;
+        ctx.strokeStyle = contorno;
+        ctx.lineWidth = 7;
+        ctx.beginPath();
+        ctx.moveTo(4, 17);
+        ctx.quadraticCurveTo(-9, 13 + bal, -5, -3 + bal * 0.4);
+        ctx.stroke();
+        ctx.strokeStyle = m.cuerpo;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(4, 17);
+        ctx.quadraticCurveTo(-9, 13 + bal, -5, -3 + bal * 0.4);
+        ctx.stroke();
+
+        // patas
+        const paso = saltando ? 0 : Math.sin(fase);
+        const levanta = saltando ? 0 : Math.max(0, Math.cos(fase)) * 3;
+        const patas = [
+            { x: 27, dx: saltando ? 6 : paso * 5, alza: saltando ? 3 : levanta },
+            { x: 22, dx: saltando ? 3 : -paso * 5, alza: saltando ? 2 : Math.max(0, -Math.cos(fase)) * 3 },
+            { x: 12, dx: saltando ? -6 : -paso * 5, alza: saltando ? 3 : Math.max(0, -Math.cos(fase)) * 3 },
+            { x: 8,  dx: saltando ? -3 : paso * 5, alza: saltando ? 2 : levanta }
+        ];
+        patas.forEach((p) => {
+            ctx.strokeStyle = contorno;
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(p.x, 22);
+            ctx.lineTo(p.x + p.dx, MH - p.alza);
+            ctx.stroke();
+            ctx.strokeStyle = m.cuerpo;
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(p.x, 22);
+            ctx.lineTo(p.x + p.dx, MH - p.alza);
+            ctx.stroke();
+        });
+
+        // cuerpo
+        ctx.fillStyle = m.cuerpo;
+        ctx.strokeStyle = contorno;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.ellipse(18, 17, 16, 9, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = m.panza;
+        ctx.beginPath();
+        ctx.ellipse(20, 21, 10, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        if(m.raya){
+            ctx.strokeStyle = m.raya;
+            ctx.lineWidth = 2;
+            [9, 15, 21].forEach((rx) => {
+                ctx.beginPath();
+                ctx.moveTo(rx, 9);
+                ctx.lineTo(rx + 1, 14);
+                ctx.stroke();
+            });
+        }
+        if(m.parches){
+            ctx.fillStyle = "#f2a154";
+            ctx.beginPath();
+            ctx.ellipse(11, 14, 6, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#3b3b46";
+            ctx.beginPath();
+            ctx.ellipse(24, 13, 4.5, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // cabeza y orejas
+        ctx.fillStyle = m.cuerpo;
+        ctx.strokeStyle = contorno;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(24, 5); ctx.lineTo(26, -4); ctx.lineTo(31, 3); ctx.closePath();
+        ctx.moveTo(32, 3); ctx.lineTo(37, -4); ctx.lineTo(39, 6); ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = m.oreja;
+        ctx.beginPath();
+        ctx.moveTo(26, 3); ctx.lineTo(27, -1); ctx.lineTo(29.5, 3); ctx.closePath();
+        ctx.moveTo(34, 3); ctx.lineTo(36.5, -1); ctx.lineTo(37.5, 4); ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = m.cuerpo;
+        ctx.strokeStyle = contorno;
+        ctx.beginPath();
+        ctx.arc(31, 11, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        if(m.parches){
+            ctx.fillStyle = "#f2a154";
+            ctx.beginPath();
+            ctx.arc(27, 8, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // cara
+        ctx.fillStyle = m.ojo;
+        ctx.beginPath();
+        ctx.arc(34.5, 10, 1.9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#e58fa0";
+        ctx.beginPath();
+        ctx.arc(39.5, 13, 1.3, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    function dibujarObstaculo(ob, contorno){
+        const x = ob.x, top = GY - ob.h;
+        ctx.lineJoin = "round";
+        ctx.lineWidth = 2;
+
+        if(ob.tipo.id === "caja" || ob.tipo.id === "cajaAncha"){
+            ctx.fillStyle = "#c9975b";
+            ctx.strokeStyle = "#8f6a3a";
+            ctx.fillRect(x, top, ob.w, ob.h);
+            ctx.strokeRect(x + 1, top + 1, ob.w - 2, ob.h - 2);
+            ctx.fillStyle = "#e6cf9c";
+            ctx.fillRect(x + ob.w / 2 - 3, top, 6, ob.h);
+        }else if(ob.tipo.id === "cajaAlta"){
+            ctx.strokeStyle = "#8f6a3a";
+            ctx.fillStyle = "#c9975b";
+            ctx.fillRect(x, top + 26, ob.w, 26);
+            ctx.strokeRect(x + 1, top + 27, ob.w - 2, 24);
+            ctx.fillStyle = "#d8a76b";
+            ctx.fillRect(x + 1, top, ob.w - 2, 26);
+            ctx.strokeRect(x + 2, top + 1, ob.w - 4, 24);
+            ctx.fillStyle = "#e6cf9c";
+            ctx.fillRect(x + ob.w / 2 - 3, top, 6, 52);
+        }else if(ob.tipo.id === "planta"){
+            // hojas
+            ctx.fillStyle = "#4f9a5a";
+            ctx.beginPath();
+            ctx.moveTo(x + 15, top + 22);
+            ctx.quadraticCurveTo(x + 2, top + 8, x + 6, top);
+            ctx.quadraticCurveTo(x + 16, top + 8, x + 15, top + 22);
+            ctx.fill();
+            ctx.fillStyle = "#6bb56f";
+            ctx.beginPath();
+            ctx.moveTo(x + 15, top + 22);
+            ctx.quadraticCurveTo(x + 24, top + 6, x + 26, top + 4);
+            ctx.quadraticCurveTo(x + 27, top + 14, x + 15, top + 22);
+            ctx.fill();
+            ctx.fillStyle = "#3f8a4d";
+            ctx.beginPath();
+            ctx.moveTo(x + 15, top + 24);
+            ctx.quadraticCurveTo(x + 11, top + 10, x + 15, top + 2);
+            ctx.quadraticCurveTo(x + 20, top + 10, x + 15, top + 24);
+            ctx.fill();
+            // maceta
+            ctx.fillStyle = "#c0714f";
+            ctx.beginPath();
+            ctx.moveTo(x + 4, top + 26);
+            ctx.lineTo(x + 26, top + 26);
+            ctx.lineTo(x + 23, top + 42);
+            ctx.lineTo(x + 7, top + 42);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = "#d98865";
+            ctx.fillRect(x + 2, top + 22, 26, 6);
+        }else if(ob.tipo.id === "ovillo"){
+            const cx = x + 12, cy = top + 12;
+            ctx.fillStyle = "#e58fb1";
+            ctx.beginPath();
+            ctx.arc(cx, cy, 12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#c8709a";
+            ctx.lineWidth = 1.6;
+            const giro = -dist / 12;
+            for(let i = 0; i < 3; i++){
+                ctx.beginPath();
+                ctx.arc(cx, cy, 9 - i * 2.5, giro + i, giro + i + 2.4);
+                ctx.stroke();
+            }
+            ctx.beginPath();
+            ctx.moveTo(cx + 10, cy + 6);
+            ctx.quadraticCurveTo(cx + 18, cy + 14, cx + 22, cy + 10);
+            ctx.stroke();
+        }else{ // libros
+            const colores = ["#7aa6d6", "#e0a458", "#8fc28a"];
+            colores.forEach((c, i) => {
+                ctx.fillStyle = c;
+                ctx.fillRect(x + (i === 1 ? 3 : 0), top + i * 10, ob.w - (i === 1 ? 3 : 0), 10);
+                ctx.fillStyle = "rgba(255,255,255,0.55)";
+                ctx.fillRect(x + (i === 1 ? 3 : 0) + 4, top + i * 10 + 4, 10, 2);
+            });
+        }
+    }
+
+    function textoCentrado(texto, yy, tamano, color){
+        ctx.font = "bold " + tamano + "px Nunito, Arial, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = color;
+        ctx.fillText(texto, W / 2, yy);
+    }
+
+    function cartel(linea1, linea2, linea3){
+        ctx.fillStyle = "rgba(255,255,255,0.82)";
+        const ax = 250, al = linea3 ? 118 : 96;
+        ctx.beginPath();
+        if(ctx.roundRect){
+            ctx.roundRect((W - ax) / 2, 70, ax, al, 14);
+        }else{
+            ctx.rect((W - ax) / 2, 70, ax, al);
+        }
+        ctx.fill();
+        textoCentrado(linea1, 96, 24, "#4a4238");
+        textoCentrado(linea2, 128, 16, "#4a4238");
+        if(linea3) textoCentrado(linea3, 152, 14, "#7a6c5d");
+    }
+
+    function dibujar(t){
+        const f = fondoActual();
+        const m = michiActual();
+        const tiempo = (t || 0) / 1000;
+
+        ctx.setTransform(escala, 0, 0, escala, 0, 0);
+        ctx.clearRect(0, 0, W, H);
+        dibujarFondo(f, tiempo);
+        obstaculos.forEach((ob) => dibujarObstaculo(ob, f.contorno));
+        dibujarMichi(m, f.contorno, !enSuelo);
+
+        if(estado === "listo"){
+            cartel("¡Michi Runner!", "Toca para empezar", "Toca para saltar");
+        }else if(estado === "pausa"){
+            cartel("Pausa", "Toca para continuar");
+        }else if(estado === "fin"){
+            cartel("¡Ups!", puntos + " puntos", "Toca para reintentar");
+        }
+    }
+
+    /* ---------- Reglas del juego ---------- */
+    function nuevoObstaculo(){
+        const tipo = elegirTipo();
+        const x = W + 20;
+        obstaculos.push({ tipo, x, w: tipo.w, h: tipo.h });
+        let anchoTotal = tipo.w;
+
+        // más adelante, a veces vienen dos seguidos (solo si son bajos)
+        if(puntos > 120 && tipo.h <= 42 && Math.random() < 0.22){
+            const t2 = elegirTipo();
+            if(t2.h <= 42){
+                obstaculos.push({ tipo: t2, x: x + tipo.w + 8 + Math.random() * 10, w: t2.w, h: t2.h });
+                anchoTotal += t2.w + 18;
+            }
+        }
+        // hueco mínimo: lo que tarda un salto + un margen, más algo de azar
+        faltaSpawn = anchoTotal + velocidad * 0.78 + 40 + Math.random() * 140;
+    }
+
+    function choca(ob){
+        const mx = MX + 6, my = y + 4, mw = MW - 12, mh = MH - 6;
+        const ins = ob.tipo.ins;
+        const ox = ob.x + ins[0], oy = GY - ob.h + ins[1];
+        const ow = ob.w - ins[0] * 2, oh = ob.h - ins[1];
+        return mx < ox + ow && mx + mw > ox && my < oy + oh && my + mh > oy;
+    }
+
+    function saltar(){
+        if(enSuelo){
+            vy = -V_SALTO;
+            enSuelo = false;
+        }else{
+            buffer = 0.12; // si tocas un poco antes de aterrizar, salta al caer
+        }
+    }
+
+    function actualizar(dt){
+        velocidad = Math.min(V_MAX, V_INI + puntos * 0.25);
+        dist += velocidad * dt;
+        puntosF += velocidad * dt / 18;
+        fase += velocidad * dt / 14;
+
+        const p = Math.floor(puntosF);
+        if(p !== puntos){
+            puntos = p;
+            elPuntos.textContent = puntos;
+        }
+
+        if(buffer > 0) buffer -= dt;
+        if(enSuelo && buffer > 0){
+            vy = -V_SALTO;
+            enSuelo = false;
+            buffer = 0;
+        }
+        if(!enSuelo){
+            vy += GRAVEDAD * dt;
+            y += vy * dt;
+            if(y >= GY - MH){
+                y = GY - MH;
+                vy = 0;
+                enSuelo = true;
+            }
+        }
+
+        faltaSpawn -= velocidad * dt;
+        if(faltaSpawn <= 0) nuevoObstaculo();
+
+        for(const ob of obstaculos) ob.x -= velocidad * dt;
+        obstaculos = obstaculos.filter((ob) => ob.x + ob.w > -10);
+
+        if(obstaculos.some(choca)) terminar();
+    }
+
+    function bucle(t){
+        if(estado !== "jugando"){ rafId = 0; return; }
+        const dt = Math.min(0.05, (t - ultimoT) / 1000);
+        ultimoT = t;
+        actualizar(dt);
+        dibujar(t);
+        if(estado === "jugando") rafId = requestAnimationFrame(bucle);
+        else rafId = 0;
+    }
+
+    function iniciarBucle(){
+        if(rafId) return;
+        ultimoT = performance.now();
+        rafId = requestAnimationFrame(bucle);
+    }
+
+    function detenerBucle(){
+        if(rafId) cancelAnimationFrame(rafId);
+        rafId = 0;
+    }
+
+    function actualizarBoton(){
+        if(estado === "jugando"){
+            boton.textContent = "Jugando...";
+            boton.disabled = true;
+        }else{
+            boton.disabled = false;
+            boton.textContent = estado === "pausa" ? "Continuar" : (estado === "fin" ? "Reintentar" : "Jugar");
+        }
+    }
+
+    function empezar(){
+        detenerBucle();
+        puntosF = 0;
+        puntos = 0;
+        dist = 0;
+        velocidad = V_INI;
+        y = GY - MH;
+        vy = 0;
+        enSuelo = true;
+        buffer = 0;
+        obstaculos = [];
+        faltaSpawn = 260;
+        elPuntos.textContent = 0;
+        elEstado.textContent = "¡A correr! Toca la pantalla para saltar.";
+        estado = "jugando";
+        actualizarBoton();
+        iniciarBucle();
+    }
+
+    function terminar(){
+        if(estado !== "jugando") return;
+        estado = "fin";
+        detenerBucle();
+        tFin = performance.now();
+
+        let nuevo = false;
+        if(puntos > record){
+            record = puntos;
+            guardar(CLAVE_RECORD, record);
+            nuevo = true;
+        }
+        elRecord.textContent = record;
+        elEstado.textContent = "¡Ups! Llegaste a " + puntos + " puntos." + (nuevo && puntos > 0 ? " 🏆 ¡Nuevo récord!" : "");
+        actualizarBoton();
+        dibujar(performance.now());
+    }
+
+    function pausar(){
+        if(estado !== "jugando") return;
+        estado = "pausa";
+        detenerBucle();
+        elEstado.textContent = "Juego en pausa.";
+        actualizarBoton();
+        dibujar(performance.now());
+    }
+
+    function reanudar(){
+        if(estado !== "pausa") return;
+        estado = "jugando";
+        elEstado.textContent = "¡A correr! Toca la pantalla para saltar.";
+        actualizarBoton();
+        iniciarBucle();
+    }
+
+    function accion(){
+        if(estado === "listo") empezar();
+        else if(estado === "jugando") saltar();
+        else if(estado === "pausa") reanudar();
+        else if(estado === "fin" && performance.now() - tFin > 400) empezar(); // evita reiniciar sin querer
+    }
+
+    /* ---------- Controles ---------- */
+    canvas.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        if(canvas.focus) canvas.focus({ preventScroll: true });
+        accion();
+    });
+    canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+    canvas.addEventListener("keydown", (e) => {
+        if(e.key === " " || e.key === "ArrowUp" || e.key === "w" || e.key === "W"){
+            e.preventDefault();
+            accion();
+        }
+    });
+    boton.addEventListener("click", () => {
+        if(estado === "listo" || estado === "fin") empezar();
+        else if(estado === "pausa") reanudar();
+    });
+
+    // Pausa automática si cambias de pestaña o el juego sale de la pantalla
+    document.addEventListener("visibilitychange", () => {
+        if(document.hidden) pausar();
+    });
+    if(typeof IntersectionObserver !== "undefined"){
+        new IntersectionObserver((entradas) => {
+            if(entradas[0] && entradas[0].intersectionRatio < 0.4) pausar();
+        }, { threshold: [0, 0.4, 1] }).observe(canvas);
+    }
+
+    /* ---------- Selección de michi y fondo ---------- */
+    function construirOpciones(contenedor, lista, actual, alElegir){
+        contenedor.textContent = "";
+        const botones = [];
+        lista.forEach((item) => {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.className = "runner-opcion";
+            const punto = document.createElement("span");
+            punto.className = "runner-punto";
+            punto.style.background = item.color;
+            const texto = document.createElement("span");
+            texto.textContent = item.nombre;
+            b.appendChild(punto);
+            b.appendChild(texto);
+            b.setAttribute("aria-pressed", item.id === actual ? "true" : "false");
+            b.addEventListener("click", () => {
+                alElegir(item.id);
+                botones.forEach((otro, i) => otro.setAttribute("aria-pressed", lista[i].id === item.id ? "true" : "false"));
+                if(estado !== "jugando") dibujar(performance.now());
+            });
+            botones.push(b);
+            contenedor.appendChild(b);
+        });
+    }
+
+    construirOpciones(contMichis, MICHIS, michiSel, (id) => { michiSel = id; guardar(CLAVE_MICHI, id); });
+    construirOpciones(contFondos, FONDOS, fondoSel, (id) => { fondoSel = id; guardar(CLAVE_FONDO, id); });
+
+    /* ---------- Tamaño (se adapta al ancho de la pantalla y a su nitidez) ---------- */
+    function ajustarTamano(){
+        const ancho = canvas.clientWidth || 300;
+        const dpr = Math.min(window.devicePixelRatio || 1, 3);
+        canvas.width = Math.round(ancho * dpr);
+        canvas.height = Math.round(ancho * dpr * H / W);
+        escala = canvas.width / W;
+        dibujar(performance.now());
+    }
+
+    if(typeof ResizeObserver !== "undefined"){
+        new ResizeObserver(ajustarTamano).observe(canvas);
+    }else{
+        window.addEventListener("resize", ajustarTamano);
+    }
+    ajustarTamano();
+    actualizarBoton();
+})();
+
 
 </script>
 
