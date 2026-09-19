@@ -124,6 +124,20 @@ main{
 .memory-card{aspect-ratio:1;background:#b09e8d;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:2rem;color:transparent;cursor:pointer;user-select:none;transition:transform 0.2s}
 .memory-card.flipped{background:#fff;color:#000;transform:rotateY(180deg)}
 
+/* ATRAPA AL MICHI */
+.atrapa-stats{display:flex;justify-content:space-around;font-weight:bold;margin-bottom:10px}
+.atrapa-area{position:relative;aspect-ratio:1;background:#fff;border-radius:8px;overflow:hidden;margin-bottom:10px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.atrapa-mensaje{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;font-weight:bold;pointer-events:none}
+.atrapa-mensaje[hidden]{display:none}
+.atrapa-michi{position:absolute;width:18%;aspect-ratio:1;border:none;background:transparent;padding:0;font-size:min(11vw,3rem);line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent;animation:atrapa-aparece 0.15s ease-out}
+.atrapa-michi[hidden]{display:none}
+.atrapa-michi:focus-visible{outline:3px solid var(--text-main);border-radius:50%}
+.atrapa-punto{position:absolute;font-weight:bold;color:var(--accent);pointer-events:none;animation:atrapa-sube 0.6s ease-out forwards}
+.atrapa-controles{text-align:center}
+@keyframes atrapa-aparece{from{transform:scale(0.4);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes atrapa-sube{from{transform:translateY(0);opacity:1}to{transform:translateY(-30px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.atrapa-michi,.atrapa-punto{animation:none}}
+
 /* PANTALLA DE CARGA */
 #loading-screen{
     position:fixed;
@@ -435,6 +449,22 @@ Crear Credencial
 <div class="card">
 <h2 class="card-title">Memoria</h2>
 <div class="memory-game" id="memory-board"></div>
+</div>
+
+<div class="card">
+<h2 class="card-title">Atrapa al Michi</h2>
+<div class="atrapa-stats">
+<span>⏱️ <span id="atrapa-tiempo">30</span>s</span>
+<span>⭐ <span id="atrapa-puntos">0</span></span>
+<span>🏆 <span id="atrapa-record">0</span></span>
+</div>
+<div class="atrapa-area" id="atrapa-area">
+<button type="button" class="atrapa-michi" id="atrapa-michi" aria-label="Atrapar al michi" hidden>🐱</button>
+<div class="atrapa-mensaje" id="atrapa-mensaje" role="status" aria-live="polite">¡Toca al michi antes de que se escape!</div>
+</div>
+<div class="atrapa-controles">
+<button type="button" class="btn-accion" id="atrapa-boton">Jugar</button>
+</div>
 </div>
 
 </div>
@@ -1522,6 +1552,153 @@ function resetBoard(){
 }
 
 initMemory();
+
+/* ATRAPA AL MICHI
+   - Un michi aparece en un lugar aleatorio y se escapa si no lo tocas a tiempo.
+   - 30 segundos; cada michi atrapado suma 1 punto y el michi se va haciendo más rápido.
+   - El récord se guarda en este dispositivo. */
+(function(){
+    const DURACION_MS = 30000;
+    const CLAVE_RECORD = "michihubRecordAtrapaMichi";
+    const TAMANO_MICHI = 18; // % del ancho de la zona de juego
+
+    const area = document.getElementById("atrapa-area");
+    const michi = document.getElementById("atrapa-michi");
+    const mensaje = document.getElementById("atrapa-mensaje");
+    const boton = document.getElementById("atrapa-boton");
+    const elTiempo = document.getElementById("atrapa-tiempo");
+    const elPuntos = document.getElementById("atrapa-puntos");
+    const elRecord = document.getElementById("atrapa-record");
+    if(!area || !michi || !mensaje || !boton) return;
+
+    let jugando = false;
+    let puntos = 0;
+    let finJuego = 0;
+    let temporizador = null;
+    let tiempoOculta = null;
+    let tiempoSiguiente = null;
+    let ultima = null;
+
+    function leerRecord(){
+        try{ return parseInt(localStorage.getItem(CLAVE_RECORD), 10) || 0; }
+        catch(err){ return 0; }
+    }
+    function guardarRecord(valor){
+        try{ localStorage.setItem(CLAVE_RECORD, String(valor)); }
+        catch(err){ /* sin almacenamiento: el récord solo dura esta visita */ }
+    }
+
+    let record = leerRecord();
+    elRecord.textContent = record;
+
+    function nuevaPosicion(){
+        const max = 100 - TAMANO_MICHI;
+        let x, y, intentos = 0;
+        do{
+            x = Math.random() * max;
+            y = Math.random() * max;
+            intentos++;
+        }while(ultima && Math.hypot(x - ultima.x, y - ultima.y) < 25 && intentos < 10);
+        ultima = { x, y };
+        michi.style.left = x + "%";
+        michi.style.top = y + "%";
+    }
+
+    function ocultarMichi(){
+        clearTimeout(tiempoOculta);
+        michi.hidden = true;
+        michi.dataset.activo = "";
+    }
+
+    function programarSiguiente(retraso){
+        clearTimeout(tiempoSiguiente);
+        tiempoSiguiente = setTimeout(mostrarMichi, retraso);
+    }
+
+    function mostrarMichi(){
+        if(!jugando) return;
+        nuevaPosicion();
+        michi.hidden = false;
+        michi.dataset.activo = "1";
+        // cada punto lo hace un poco más rápido (mínimo 550 ms visible)
+        const visible = Math.max(550, 1000 - puntos * 15);
+        tiempoOculta = setTimeout(() => {
+            ocultarMichi();
+            programarSiguiente(150 + Math.random() * 250);
+        }, visible);
+    }
+
+    function mostrarPunto(){
+        const marca = document.createElement("span");
+        marca.className = "atrapa-punto";
+        marca.textContent = "+1";
+        marca.style.left = michi.style.left;
+        marca.style.top = michi.style.top;
+        area.appendChild(marca);
+        setTimeout(() => marca.remove(), 600);
+    }
+
+    function atrapar(){
+        if(!jugando || michi.dataset.activo !== "1") return;
+        michi.dataset.activo = ""; // evita contar dos veces el mismo michi
+        puntos++;
+        elPuntos.textContent = puntos;
+        mostrarPunto();
+        ocultarMichi();
+        programarSiguiente(120);
+    }
+
+    // pointerdown responde al instante en el celular; click cubre el teclado
+    michi.addEventListener("pointerdown", (e) => { e.preventDefault(); atrapar(); });
+    michi.addEventListener("click", atrapar);
+
+    function actualizarTiempo(){
+        const restante = Math.max(0, Math.ceil((finJuego - Date.now()) / 1000));
+        elTiempo.textContent = restante;
+        if(Date.now() >= finJuego) terminar();
+    }
+
+    function terminar(){
+        if(!jugando) return;
+        jugando = false;
+        clearInterval(temporizador);
+        clearTimeout(tiempoSiguiente);
+        ocultarMichi();
+
+        let nuevoRecord = false;
+        if(puntos > record){
+            record = puntos;
+            guardarRecord(record);
+            nuevoRecord = true;
+        }
+        elRecord.textContent = record;
+        elTiempo.textContent = 0;
+
+        mensaje.textContent = "¡Tiempo! Atrapaste " + puntos + (puntos === 1 ? " michi" : " michis") +
+            (nuevoRecord && puntos > 0 ? " 🏆 ¡Nuevo récord!" : "");
+        mensaje.hidden = false;
+        boton.textContent = "Jugar otra vez";
+        boton.disabled = false;
+    }
+
+    function empezar(){
+        if(jugando) return;
+        puntos = 0;
+        ultima = null;
+        elPuntos.textContent = 0;
+        elTiempo.textContent = DURACION_MS / 1000;
+        mensaje.hidden = true;
+        boton.disabled = true;
+        boton.textContent = "Jugando...";
+
+        jugando = true;
+        finJuego = Date.now() + DURACION_MS;
+        temporizador = setInterval(actualizarTiempo, 100);
+        programarSiguiente(400);
+    }
+
+    boton.addEventListener("click", empezar);
+})();
 
 </script>
 
