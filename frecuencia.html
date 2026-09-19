@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frecuencia — Panel de radio en vivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link id="link-manifest" rel="manifest">
+<style>
+  :root{
+    --bg: #0B0D12;
+    --panel: #12151C;
+    --panel-alt: #171B24;
+    --border: #262B36;
+    --ink: #E7E4DA;
+    --ink-dim: #838a99;
+    --ink-faint: #565d6b;
+    --amber: #E2A83F;
+    --amber-dim: #8C6A2A;
+    --live: #4FA39C;
+    --rojo: #C96A5A;
+    --serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --sans: 'Space Grotesk', 'Segoe UI', Helvetica, Arial, sans-serif;
+    --mono: 'JetBrains Mono', 'Courier New', monospace;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 28px 18px 100px;
+  }
+
+  .envoltura{
+    max-width: 980px;
+    margin: 0 auto;
+  }
+
+  header.cabecera{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+
+  .marca{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  .marca h1{
+    font-family: var(--serif);
+    font-weight:600;
+    font-size: 1.6rem;
+    margin:0;
+    letter-spacing: 0.01em;
+  }
+  .marca span{
+    color: var(--ink-faint);
+    font-size: 0.82rem;
+  }
+
+  .controles-cabecera{
+    display:flex;
+    align-items:center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .estado-vivo{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--ink-dim);
+  }
+  .punto{
+    width:8px; height:8px; border-radius:50%;
+    background: var(--live);
+    box-shadow: 0 0 0 0 rgba(79,163,156,0.6);
+    animation: pulso 2.4s infinite;
+  }
+  .punto.apagado{ background: var(--ink-faint); animation:none; box-shadow:none; }
+  @keyframes pulso{
+    0%{ box-shadow: 0 0 0 0 rgba(79,163,156,0.55); }
+    70%{ box-shadow: 0 0 0 9px rgba(79,163,156,0); }
+    100%{ box-shadow: 0 0 0 0 rgba(79,163,156,0); }
+  }
+
+  .interruptor{
+    display:flex; align-items:center; gap:6px;
+    font-size: 0.74rem;
+    color: var(--ink-dim);
+    cursor:pointer;
+    user-select:none;
+  }
+  .interruptor input{ accent-color: var(--amber); }
+
+  .btn-icono{
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--ink-dim);
+    width: 32px; height:32px;
+    border-radius: 3px;
+    cursor:pointer;
+    font-size: 0.95rem;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .btn-icono:hover{ border-color: var(--amber); color: var(--amber); }
+  .btn-icono:focus-visible{ outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  #btn-instalar{ display:none; }
+
+  .rejilla{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .panel{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 18px;
+  }
+
+  .etiqueta{
+    font-size: 0.72rem;
+    color: var(--ink-faint);
+    margin: 0 0 14px;
+    font-weight: 500;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+
+  /* --- Sintonizador --- */
+  .campo-url{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    margin-bottom: 16px;
+  }
+  .campo-url label{
+    font-size: 0.75rem;
+    color: var(--ink-dim);
+  }
+  .campo-url input{
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    padding: 10px 12px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    width:100%;
+  }
+  .campo-url input:focus{ outline: 1px solid var(--amber); border-color: var(--amber); }
+
+  .btn{
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--ink);
+    padding: 9px 14px;
+    border-radius: 3px;
+    font-family: var(--sans);
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: border-color .15s ease, color .15s ease;
+  }
+  .btn:hover{ border-color: var(--amber); color: var(--amber); }
+  .btn:focus-visible{ outline: 2px solid var(--amber); outline-offset: 2px; }
+  .btn-guardar-preset{ width:100%; margin-bottom: 18px; }
+
+  .lista-presets{
+    list-style:none;
+    margin: 0 0 18px;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .lista-presets li{
+    display:flex;
+    align-items:stretch;
+    gap:6px;
+  }
+  .preset-btn{
+    flex:1;
+    text-align:left;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    color: var(--ink-dim);
+    padding: 8px 10px;
+    border-radius:3px;
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    cursor:pointer;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .preset-btn.activo{ border-color: var(--amber); color: var(--amber); }
+  .preset-btn:hover{ border-color: var(--amber); color: var(--amber); }
+  .preset-del{
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--ink-faint);
+    width: 32px;
+    border-radius:3px;
+    cursor:pointer;
+  }
+  .preset-del:hover{ border-color: var(--rojo); color: var(--rojo); }
+
+  .transporte{
+    display:flex;
+    align-items:center;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .btn-play{
+    width: 52px; height:52px;
+    border-radius: 50%;
+    border: 1px solid var(--amber-dim);
+    background: var(--panel-alt);
+    color: var(--amber);
+    font-size: 1.1rem;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .btn-play:hover{ border-color: var(--amber); }
+  .btn-play:focus-visible{ outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  .vu{
+    display:flex;
+    align-items:flex-end;
+    gap:3px;
+    height: 32px;
+    flex:1;
+  }
+  .vu i{
+    display:block;
+    width: 5px;
+    background: var(--amber-dim);
+    border-radius: 1px;
+    animation: barrita 1.1s ease-in-out infinite;
+    animation-play-state: paused;
+  }
+  .vu.activo i{ animation-play-state: running; background: var(--amber); }
+  .vu.real i{ animation: none !important; background: var(--amber); }
+  .vu i:nth-child(1){ height:35%; animation-delay: 0s; }
+  .vu i:nth-child(2){ height:70%; animation-delay: .12s; }
+  .vu i:nth-child(3){ height:45%; animation-delay: .24s; }
+  .vu i:nth-child(4){ height:90%; animation-delay: .06s; }
+  .vu i:nth-child(5){ height:55%; animation-delay: .3s; }
+  .vu i:nth-child(6){ height:75%; animation-delay: .18s; }
+  .vu i:nth-child(7){ height:40%; animation-delay: .36s; }
+  .vu i:nth-child(8){ height:65%; animation-delay: .09s; }
+  @keyframes barrita{
+    0%,100%{ transform: scaleY(0.4); }
+    50%{ transform: scaleY(1); }
+  }
+
+  .volumen{ display:flex; align-items:center; gap:10px; }
+  .volumen span{ font-size: 0.75rem; color: var(--ink-faint); font-family: var(--mono); width: 30px; }
+  .volumen input[type=range]{
+    flex:1; accent-color: var(--amber);
+  }
+
+  .nota-soporte{
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-size: 0.74rem;
+    color: var(--ink-faint);
+    line-height: 1.5;
+  }
+
+  /* --- Ahora suena --- */
+  .ahora-suena{
+    display:flex;
+    gap: 18px;
+  }
+  .portada{
+    width: 92px; height: 92px;
+    border-radius: 4px;
+    background: var(--panel-alt) center/cover no-repeat;
+    border: 1px solid var(--border);
+    flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    color: var(--ink-faint);
+    font-size: 1.5rem;
+  }
+  .info-cancion{ flex:1; min-width:0; }
+  .fila-titulo{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .titulo-cancion{
+    font-family: var(--serif);
+    font-size: 1.35rem;
+    font-weight: 600;
+    margin: 0 0 4px;
+    line-height:1.2;
+    overflow-wrap: anywhere;
+  }
+  .artista-cancion{
+    color: var(--ink-dim);
+    font-size: 0.95rem;
+    margin: 0 0 10px;
+  }
+
+  .btn-estrella{
+    background:none;
+    border:none;
+    color: var(--ink-faint);
+    font-size: 1.2rem;
+    cursor:pointer;
+    line-height:1;
+    padding: 2px 4px;
+    flex-shrink:0;
+  }
+  .btn-estrella.activa{ color: var(--amber); }
+  .btn-estrella:hover{ color: var(--amber); }
+
+  .enlaces-externos{
+    display:flex;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .enlaces-externos a{
+    font-size: 0.74rem;
+    color: var(--ink-faint);
+    text-decoration:none;
+    border-bottom: 1px solid var(--border);
+  }
+  .enlaces-externos a:hover{ color: var(--amber); border-color: var(--amber); }
+
+  .transcurso{
+    display:flex; align-items:center; gap:10px;
+  }
+  .transcurso span{
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--ink-faint);
+    width: 38px;
+  }
+  .transcurso span:last-child{ text-align:right; }
+  .barra{
+    flex:1; height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    position: relative;
+    overflow:hidden;
+  }
+  .barra i{
+    position:absolute; left:0; top:0; bottom:0;
+    width:0%;
+    background: var(--amber);
+  }
+
+  .aviso-duracion{
+    font-size: 0.72rem;
+    color: var(--ink-faint);
+    margin-top: 10px;
+  }
+
+  hr.separador{
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 20px 0;
+  }
+
+  .historial ul, .favoritos ul{
+    list-style:none;
+    margin:0; padding:0;
+    display:flex;
+    flex-direction:column;
+  }
+  .historial li, .favoritos li{
+    display:flex;
+    align-items:flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.86rem;
+  }
+  .historial li:last-child, .favoritos li:last-child{ border-bottom:none; }
+  .historial .hora{
+    font-family: var(--mono);
+    color: var(--ink-faint);
+    font-size: 0.76rem;
+    width: 42px;
+    flex-shrink:0;
+    padding-top: 2px;
+  }
+  .historial .texto, .favoritos .texto{ color: var(--ink-dim); flex:1; min-width:0; }
+  .historial .texto b, .favoritos .texto b{ color: var(--ink); font-weight:500; }
+  .historial .btn-estrella, .favoritos .btn-estrella{ font-size: 0.95rem; padding:0 2px; }
+
+  .vacio{
+    color: var(--ink-faint);
+    font-size: 0.85rem;
+    padding: 6px 0;
+  }
+
+  /* --- Mini reproductor --- */
+  .mini-reproductor{
+    position: fixed;
+    left: 0; right:0; bottom:0;
+    display:none;
+    align-items:center;
+    gap: 14px;
+    padding: 10px 18px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    z-index: 50;
+  }
+  body.modo-compacto .mini-reproductor{ display:flex; }
+  body.modo-compacto .rejilla{ display:none; }
+  .mini-reproductor .btn-play{ width:38px; height:38px; font-size:0.85rem; }
+  .mini-info{ flex:1; min-width:0; }
+  .mini-info .t{ font-family: var(--serif); font-size:0.95rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mini-info .a{ font-size:0.76rem; color: var(--ink-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+</style>
+</head>
+<body>
+<div class="envoltura">
+
+  <header class="cabecera">
+    <div class="marca">
+      <h1>Frecuencia</h1>
+      <span>panel de radio en vivo</span>
+    </div>
+    <div class="controles-cabecera">
+      <label class="interruptor">
+        <input type="checkbox" id="chk-notif">
+        Notificarme cambios
+      </label>
+      <button class="btn-icono" id="btn-mini" title="Modo compacto" aria-label="Modo compacto">▭</button>
+      <button class="btn-icono" id="btn-instalar" title="Instalar app" aria-label="Instalar app">⤓</button>
+      <div class="estado-vivo">
+        <span class="punto apagado" id="punto-vivo"></span>
+        <span id="texto-vivo">sin conexión</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="rejilla">
+
+    <!-- SINTONIZADOR -->
+    <section class="panel">
+      <p class="etiqueta">sintonizador</p>
+
+      <div class="campo-url">
+        <label for="input-url">URL del stream (Zeno.fm)</label>
+        <input type="text" id="input-url" value="https://stream-153.zeno.fm/aqv7eadz908uv?zt=eyJhbGciOiJIUzI1NiJ9.eyJzdHJlYW0iOiJhcXY3ZWFkejkwOHV2IiwiaG9zdCI6InN0cmVhbS0xNTMuemVuby5mbSIsInJ0dGwiOjUsImp0aSI6IjRHeWdtTUx3UW5xaDZtUGVvSFRHc2ciLCJpYXQiOjE3NzYyMjkwNjMsImV4cCI6MTc3NjIyOTEyM30.5NXhwliZFGbMTk5UXEtW7iJvKBm4DGIKd22bobs0ego" spellcheck="false">
+      </div>
+
+      <button class="btn btn-guardar-preset" id="btn-guardar-preset">+ Guardar como preset</button>
+
+      <ul class="lista-presets" id="lista-presets"></ul>
+
+      <div class="transporte">
+        <button class="btn-play" id="btn-play" aria-label="Reproducir">▶</button>
+        <div class="vu" id="vu">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+      </div>
+
+      <div class="volumen">
+        <span>vol</span>
+        <input type="range" id="input-volumen" min="0" max="100" value="70">
+      </div>
+
+      <p class="nota-soporte" id="nota-soporte">
+        La detección de canción usa los metadatos en vivo que la propia estación transmite (funciona con estaciones alojadas en Zeno.fm). Si el stream no es de Zeno.fm, el audio se reproduce igual pero no habrá título ni duración.
+      </p>
+
+      <audio id="audio" preload="none" crossorigin="anonymous"></audio>
+    </section>
+
+    <!-- AHORA SUENA -->
+    <section class="panel">
+      <p class="etiqueta">ahora suena</p>
+
+      <div class="ahora-suena">
+        <div class="portada" id="portada">♪</div>
+        <div class="info-cancion">
+          <div class="fila-titulo">
+            <div>
+              <p class="titulo-cancion" id="titulo-cancion">Esperando señal</p>
+              <p class="artista-cancion" id="artista-cancion">Sintonizando…</p>
+            </div>
+            <button class="btn-estrella" id="btn-estrella-actual" aria-label="Marcar como favorita">★</button>
+          </div>
+
+          <div class="enlaces-externos" id="enlaces-actual"></div>
+
+          <div class="transcurso">
+            <span id="tiempo-actual">0:00</span>
+            <div class="barra"><i id="barra-relleno"></i></div>
+            <span id="tiempo-total">–:––</span>
+          </div>
+          <p class="aviso-duracion" id="aviso-duracion"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- HISTORIAL -->
+    <section class="panel">
+      <p class="etiqueta">historial</p>
+      <div class="historial">
+        <ul id="lista-historial"></ul>
+        <p class="vacio" id="historial-vacio">Todavía no se ha detectado ninguna canción.</p>
+      </div>
+    </section>
+
+    <!-- FAVORITOS -->
+    <section class="panel">
+      <p class="etiqueta">favoritos</p>
+      <div class="favoritos">
+        <ul id="lista-favoritos"></ul>
+        <p class="vacio" id="favoritos-vacio">Marca canciones con ★ para guardarlas aquí.</p>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<div class="mini-reproductor" id="mini-reproductor">
+  <button class="btn-play" id="mini-btn-play" aria-label="Reproducir">▶</button>
+  <div class="mini-info">
+    <div class="t" id="mini-titulo">Esperando señal</div>
+    <div class="a" id="mini-artista">Sintonizando…</div>
+  </div>
+  <button class="btn-icono" id="btn-mini-cerrar" aria-label="Cerrar modo compacto">▢</button>
+</div>
+
+<script>
+(function(){
+  const audio = document.getElementById('audio');
+  const inputUrl = document.getElementById('input-url');
+  const btnPlay = document.getElementById('btn-play');
+  const miniBtnPlay = document.getElementById('mini-btn-play');
+  const inputVolumen = document.getElementById('input-volumen');
+  const vu = document.getElementById('vu');
+  const puntoVivo = document.getElementById('punto-vivo');
+  const textoVivo = document.getElementById('texto-vivo');
+  const notaSoporte = document.getElementById('nota-soporte');
+  const chkNotif = document.getElementById('chk-notif');
+  const btnMini = document.getElementById('btn-mini');
+  const btnMiniCerrar = document.getElementById('btn-mini-cerrar');
+  const btnInstalar = document.getElementById('btn-instalar');
+  const btnGuardarPreset = document.getElementById('btn-guardar-preset');
+  const listaPresets = document.getElementById('lista-presets');
+
+  const tituloEl = document.getElementById('titulo-cancion');
+  const artistaEl = document.getElementById('artista-cancion');
+  const portadaEl = document.getElementById('portada');
+  const tiempoActualEl = document.getElementById('tiempo-actual');
+  const tiempoTotalEl = document.getElementById('tiempo-total');
+  const barraRelleno = document.getElementById('barra-relleno');
+  const avisoDuracion = document.getElementById('aviso-duracion');
+  const listaHistorial = document.getElementById('lista-historial');
+  const historialVacio = document.getElementById('historial-vacio');
+  const listaFavoritos = document.getElementById('lista-favoritos');
+  const favoritosVacio = document.getElementById('favoritos-vacio');
+  const btnEstrellaActual = document.getElementById('btn-estrella-actual');
+  const enlacesActual = document.getElementById('enlaces-actual');
+  const miniTitulo = document.getElementById('mini-titulo');
+  const miniArtista = document.getElementById('mini-artista');
+
+  audio.volume = 0.7;
+
+  let eventSource = null;
+  let ultimoStreamTitle = null;
+  let cronometro = null;
+  let segundosTranscurridos = 0;
+  let duracionTotalSeg = null;
+  let cancionActual = { artista:'', titulo:'' };
+  const MAX_HISTORIAL = 8;
+
+  // ---------- Persistencia ----------
+  function cargarJSON(clave, porDefecto){
+    try{
+      const v = JSON.parse(localStorage.getItem(clave));
+      return v == null ? porDefecto : v;
+    }catch(e){ return porDefecto; }
+  }
+  function guardarJSON(clave, valor){
+    try{ localStorage.setItem(clave, JSON.stringify(valor)); }catch(e){ /* almacenamiento no disponible */ }
+  }
+
+  let historial = cargarJSON('frecuencia_historial', []).map(h => ({...h, hora: new Date(h.hora)}));
+  let favoritos = cargarJSON('frecuencia_favoritos', []);
+  let presets = cargarJSON('frecuencia_presets', []);
+  if(!presets.length){
+    presets = [{ nombre: 'Estación inicial', url: inputUrl.value }];
+    guardarJSON('frecuencia_presets', presets);
+  }
+
+  // ---------- Utilidades ----------
+  function formatearTiempo(seg){
+    if(seg == null || isNaN(seg)) return '–:––';
+    seg = Math.max(0, Math.floor(seg));
+    const m = Math.floor(seg / 60);
+    const s = seg % 60;
+    return m + ':' + String(s).padStart(2,'0');
+  }
+
+  function extraerIdZeno(url){
+    try{
+      const u = new URL(url.trim());
+      if(!/zeno\.fm$/i.test(u.hostname)) return null;
+      const partes = u.pathname.split('/').filter(Boolean);
+      return partes.length ? partes[partes.length - 1] : null;
+    }catch(e){ return null; }
+  }
+
+  function escaparHTML(str){
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function enlacesBusqueda(artista, titulo){
+    const q = encodeURIComponent(`${artista} ${titulo}`.trim());
+    return {
+      yt: `https://www.youtube.com/results?search_query=${q}`,
+      sp: `https://open.spotify.com/search/${q}`,
+      am: `https://music.apple.com/search?term=${q}`
+    };
+  }
+
+  function marcarVivo(activo, texto){
+    puntoVivo.classList.toggle('apagado', !activo);
+    textoVivo.textContent = texto;
+  }
+
+  // ---------- Favoritos ----------
+  function esFavorito(artista, titulo){
+    return favoritos.some(f => f.artista === artista && f.titulo === titulo);
+  }
+
+  function alternarFavorito(artista, titulo){
+    if(!titulo) return;
+    const idx = favoritos.findIndex(f => f.artista === artista && f.titulo === titulo);
+    if(idx >= 0) favoritos.splice(idx, 1);
+    else favoritos.unshift({ artista, titulo });
+    guardarJSON('frecuencia_favoritos', favoritos);
+    renderizarFavoritos();
+    actualizarEstrellaActual();
+    renderizarHistorial();
+  }
+
+  function actualizarEstrellaActual(){
+    btnEstrellaActual.classList.toggle('activa', esFavorito(cancionActual.artista, cancionActual.titulo) && !!cancionActual.titulo);
+  }
+
+  function renderizarFavoritos(){
+    listaFavoritos.innerHTML = '';
+    favoritosVacio.style.display = favoritos.length ? 'none' : 'block';
+    favoritos.forEach(f => {
+      const li = document.createElement('li');
+      const texto = document.createElement('span');
+      texto.className = 'texto';
+      texto.innerHTML = f.artista
+        ? '<b>' + escaparHTML(f.titulo) + '</b> — ' + escaparHTML(f.artista)
+        : '<b>' + escaparHTML(f.titulo) + '</b>';
+      const estrella = document.createElement('button');
+      estrella.className = 'btn-estrella activa';
+      estrella.setAttribute('aria-label', 'Quitar de favoritos');
+      estrella.textContent = '★';
+      estrella.addEventListener('click', () => alternarFavorito(f.artista, f.titulo));
+      li.appendChild(texto);
+      li.appendChild(estrella);
+      listaFavoritos.appendChild(li);
+    });
+  }
+
+  // ---------- Historial ----------
+  function agregarHistorial(entrada){
+    historial.unshift(entrada);
+    if(historial.length > MAX_HISTORIAL) historial.pop();
+    guardarJSON('frecuencia_historial', historial.map(h => ({...h, hora: h.hora.toISOString()})));
+    renderizarHistorial();
+  }
+
+  function renderizarHistorial(){
+    listaHistorial.innerHTML = '';
+    historialVacio.style.display = historial.length ? 'none' : 'block';
+    historial.forEach(item => {
+      const li = document.createElement('li');
+      const hora = document.createElement('span');
+      hora.className = 'hora';
+      hora.textContent = item.hora.toTimeString().slice(0,5);
+      const texto = document.createElement('span');
+      texto.className = 'texto';
+      texto.innerHTML = item.artista
+        ? '<b>' + escaparHTML(item.titulo) + '</b> — ' + escaparHTML(item.artista)
+        : '<b>' + escaparHTML(item.titulo) + '</b>';
+      const estrella = document.createElement('button');
+      estrella.className = 'btn-estrella' + (esFavorito(item.artista, item.titulo) ? ' activa' : '');
+      estrella.setAttribute('aria-label', 'Marcar como favorita');
+      estrella.textContent = '★';
+      estrella.addEventListener('click', () => alternarFavorito(item.artista, item.titulo));
+      li.appendChild(hora);
+      li.appendChild(texto);
+      li.appendChild(estrella);
+      listaHistorial.appendChild(li);
+    });
+  }
+
+  // ---------- Presets ----------
+  function guardarPresets(){ guardarJSON('frecuencia_presets', presets); }
+
+  function renderizarPresets(){
+    listaPresets.innerHTML = '';
+    presets.forEach((p, idx) => {
+      const li = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.className = 'preset-btn' + (p.url === inputUrl.value.trim() ? ' activo' : '');
+      btn.textContent = p.nombre;
+      btn.title = p.url;
+      btn.addEventListener('click', () => {
+        inputUrl.value = p.url;
+        conectarEstacion();
+        renderizarPresets();
+      });
+      const del = document.createElement('button');
+      del.className = 'preset-del';
+      del.setAttribute('aria-label', 'Eliminar preset');
+      del.textContent = '×';
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        presets.splice(idx, 1);
+        guardarPresets();
+        renderizarPresets();
+      });
+      li.appendChild(btn);
+      li.appendChild(del);
+      listaPresets.appendChild(li);
+    });
+  }
+
+  btnGuardarPreset.addEventListener('click', () => {
+    const nombre = prompt('Nombre para esta estación:', 'Mi estación');
+    if(!nombre) return;
+    presets.push({ nombre: nombre.trim(), url: inputUrl.value.trim() });
+    guardarPresets();
+    renderizarPresets();
+  });
+
+  // ---------- Reproducción y metadatos ----------
+  function detenerCronometro(){
+    if(cronometro){ clearInterval(cronometro); cronometro = null; }
+  }
+
+  function iniciarCronometro(){
+    detenerCronometro();
+    segundosTranscurridos = 0;
+    cronometro = setInterval(() => {
+      segundosTranscurridos++;
+      tiempoActualEl.textContent = formatearTiempo(segundosTranscurridos);
+      if(duracionTotalSeg){
+        const pct = Math.min(100, (segundosTranscurridos / duracionTotalSeg) * 100);
+        barraRelleno.style.width = pct + '%';
+      }
+    }, 1000);
+  }
+
+  function reiniciarTarjetaActual(){
+    duracionTotalSeg = null;
+    tiempoActualEl.textContent = '0:00';
+    tiempoTotalEl.textContent = '–:––';
+    barraRelleno.style.width = '0%';
+    avisoDuracion.textContent = '';
+    portadaEl.style.backgroundImage = '';
+    portadaEl.textContent = '♪';
+    iniciarCronometro();
+  }
+
+  async function buscarInfoCancion(artista, titulo){
+    try{
+      const termino = encodeURIComponent(`${artista} ${titulo}`.trim());
+      const res = await fetch(`https://itunes.apple.com/search?term=${termino}&entity=song&limit=1`);
+      if(!res.ok) throw new Error('respuesta no ok');
+      const datos = await res.json();
+      if(datos.results && datos.results.length){
+        const r = datos.results[0];
+        duracionTotalSeg = r.trackTimeMillis ? Math.round(r.trackTimeMillis/1000) : null;
+        tiempoTotalEl.textContent = formatearTiempo(duracionTotalSeg);
+        if(r.artworkUrl100){
+          portadaEl.style.backgroundImage = `url(${r.artworkUrl100.replace('100x100','300x300')})`;
+          portadaEl.textContent = '';
+        }
+        avisoDuracion.textContent = '';
+      } else {
+        avisoDuracion.textContent = 'No se encontró duración para esta canción.';
+      }
+    }catch(e){
+      avisoDuracion.textContent = 'No se pudo consultar la duración.';
+    }
+  }
+
+  function manejarNuevoTitulo(streamTitle){
+    if(!streamTitle || streamTitle === ultimoStreamTitle) return;
+    ultimoStreamTitle = streamTitle;
+
+    let artista = '', titulo = streamTitle;
+    const partes = streamTitle.split(' - ');
+    if(partes.length >= 2){
+      artista = partes[0].trim();
+      titulo = partes.slice(1).join(' - ').trim();
+    }
+
+    cancionActual = { artista, titulo };
+    tituloEl.textContent = titulo || 'Sin título';
+    artistaEl.textContent = artista || 'Artista desconocido';
+    miniTitulo.textContent = titulo || 'Sin título';
+    miniArtista.textContent = artista || 'Artista desconocido';
+    actualizarEstrellaActual();
+
+    const enlaces = enlacesBusqueda(artista, titulo);
+    enlacesActual.innerHTML =
+      `<a href="${enlaces.yt}" target="_blank" rel="noopener">YouTube</a>` +
+      `<a href="${enlaces.sp}" target="_blank" rel="noopener">Spotify</a>` +
+      `<a href="${enlaces.am}" target="_blank" rel="noopener">Apple Music</a>`;
+
+    reiniciarTarjetaActual();
+    buscarInfoCancion(artista, titulo);
+    agregarHistorial({ artista, titulo, hora: new Date() });
+
+    if(chkNotif.checked && 'Notification' in window && Notification.permission === 'granted'){
+      try{
+        new Notification('Sonando ahora', { body: (artista ? artista + ' — ' : '') + (titulo || '') });
+      }catch(e){ /* algunos navegadores móviles no soportan Notification directa */ }
+    }
+  }
+
+  function conectarMetadata(url){
+    if(eventSource){ eventSource.close(); eventSource = null; }
+    ultimoStreamTitle = null;
+
+    const idZeno = extraerIdZeno(url);
+    if(!idZeno){
+      marcarVivo(false, 'metadatos no disponibles');
+      notaSoporte.textContent = 'Esta URL no parece ser de Zeno.fm, así que no hay metadatos en vivo disponibles. El audio se puede reproducir igual.';
+      return;
+    }
+
+    notaSoporte.textContent = 'La detección de canción usa los metadatos en vivo que la propia estación transmite (funciona con estaciones alojadas en Zeno.fm). Si el stream no es de Zeno.fm, el audio se reproduce igual pero no habrá título ni duración.';
+
+    eventSource = new EventSource(`https://api.zeno.fm/mounts/metadata/subscribe/${idZeno}`);
+
+    eventSource.onopen = () => marcarVivo(true, 'en vivo');
+    eventSource.onerror = () => marcarVivo(false, 'reconectando…');
+    eventSource.onmessage = (evento) => {
+      try{
+        const datos = JSON.parse(evento.data);
+        if(datos.streamTitle) manejarNuevoTitulo(datos.streamTitle);
+      }catch(e){ /* mensaje no parseable, se ignora */ }
+    };
+  }
+
+  // ---------- Ecualizador real (con degradación automática) ----------
+  let audioCtx = null, analyser = null, freqData = null, origenAudio = null;
+  let animFrame = null, cuadrosEnSilencio = 0, modoRealActivo = false;
+  const barritasVU = vu.querySelectorAll('i');
+  const UMBRAL_SILENCIO = 180; // ~3s a 60fps sin señal real -> asumimos stream sin CORS
+
+  function iniciarAnalizador(){
+    try{
+      if(!audioCtx){
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        origenAudio = audioCtx.createMediaElementSource(audio);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 32;
+        freqData = new Uint8Array(analyser.frequencyBinCount);
+        origenAudio.connect(analyser);
+        analyser.connect(audioCtx.destination);
+      }
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+      cuadrosEnSilencio = 0;
+      if(animFrame) cancelAnimationFrame(animFrame);
+      dibujarAnalizador();
+    }catch(e){
+      // Web Audio no disponible en este navegador: se queda con la animación simulada
+    }
+  }
+
+  function volverAAnimacionFalsa(){
+    modoRealActivo = false;
+    vu.classList.remove('real');
+    barritasVU.forEach(b => { b.style.height = ''; });
+  }
+
+  function dibujarAnalizador(){
+    if(!analyser) return;
+    analyser.getByteFrequencyData(freqData);
+    const suma = freqData.reduce((a,b) => a+b, 0);
+    if(suma === 0){
+      cuadrosEnSilencio++;
+    } else {
+      cuadrosEnSilencio = 0;
+      if(!modoRealActivo){ modoRealActivo = true; vu.classList.add('real'); }
+    }
+    if(cuadrosEnSilencio > UMBRAL_SILENCIO){
+      volverAAnimacionFalsa();
+      animFrame = null;
+      return;
+    }
+    if(modoRealActivo){
+      barritasVU.forEach((b, i) => {
+        const valor = freqData[i] || 0;
+        b.style.height = Math.max(8, (valor/255)*100) + '%';
+      });
+    }
+    animFrame = requestAnimationFrame(dibujarAnalizador);
+  }
+
+  // ---------- Transporte ----------
+  function actualizarBotonesPlay(reproduciendo){
+    const icono = reproduciendo ? '❚❚' : '▶';
+    btnPlay.textContent = icono;
+    miniBtnPlay.textContent = icono;
+    vu.classList.toggle('activo', reproduciendo);
+  }
+
+  function conectarEstacion(){
+    const url = inputUrl.value.trim();
+    if(!url) return;
+    audio.src = url;
+    tituloEl.textContent = 'Esperando señal';
+    artistaEl.textContent = 'Sintonizando…';
+    miniTitulo.textContent = 'Esperando señal';
+    miniArtista.textContent = 'Sintonizando…';
+    volverAAnimacionFalsa();
+    conectarMetadata(url);
+    renderizarPresets();
+
+    const intento = audio.play();
+    if(intento && intento.then){
+      intento.then(() => {
+        actualizarBotonesPlay(true);
+        iniciarAnalizador();
+      }).catch(() => {
+        actualizarBotonesPlay(false);
+        notaSoporte.textContent = 'El navegador bloqueó la reproducción automática. Toca ▶ una vez para arrancar el audio (los metadatos ya están conectados).';
+      });
+    }
+  }
+
+  function alternarReproduccion(){
+    if(!audio.src){ conectarEstacion(); return; }
+    if(audio.paused){
+      audio.play().then(() => { actualizarBotonesPlay(true); iniciarAnalizador(); }).catch(()=>{});
+    } else {
+      audio.pause();
+      actualizarBotonesPlay(false);
+    }
+  }
+
+  btnPlay.addEventListener('click', alternarReproduccion);
+  miniBtnPlay.addEventListener('click', alternarReproduccion);
+  btnEstrellaActual.addEventListener('click', () => alternarFavorito(cancionActual.artista, cancionActual.titulo));
+
+  inputVolumen.addEventListener('input', () => {
+    audio.volume = inputVolumen.value / 100;
+  });
+
+  inputUrl.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') conectarEstacion();
+  });
+
+  // ---------- Modo compacto ----------
+  btnMini.addEventListener('click', () => document.body.classList.add('modo-compacto'));
+  btnMiniCerrar.addEventListener('click', () => document.body.classList.remove('modo-compacto'));
+
+  // ---------- Notificaciones ----------
+  chkNotif.addEventListener('change', () => {
+    if(chkNotif.checked){
+      if(!('Notification' in window)){
+        chkNotif.checked = false;
+        notaSoporte.textContent = 'Este navegador no soporta notificaciones.';
+        return;
+      }
+      Notification.requestPermission().then(p => {
+        const concedido = p === 'granted';
+        chkNotif.checked = concedido;
+        guardarJSON('frecuencia_notif', concedido);
+      });
+    } else {
+      guardarJSON('frecuencia_notif', false);
+    }
+  });
+  if(cargarJSON('frecuencia_notif', false) && 'Notification' in window && Notification.permission === 'granted'){
+    chkNotif.checked = true;
+  }
+
+  // ---------- Instalación (mejor esfuerzo) ----------
+  try{
+    const manifest = { name:'Frecuencia', short_name:'Frecuencia', start_url:'.', display:'standalone', background_color:'#0B0D12', theme_color:'#0B0D12', icons:[] };
+    const blob = new Blob([JSON.stringify(manifest)], { type:'application/json' });
+    document.getElementById('link-manifest').setAttribute('href', URL.createObjectURL(blob));
+  }catch(e){ /* sin soporte de Blob para el manifest, se omite */ }
+
+  let eventoInstalacion = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    eventoInstalacion = e;
+    btnInstalar.style.display = 'flex';
+  });
+  btnInstalar.addEventListener('click', () => {
+    if(!eventoInstalacion) return;
+    eventoInstalacion.prompt();
+    eventoInstalacion = null;
+    btnInstalar.style.display = 'none';
+  });
+
+  // ---------- Arranque ----------
+  renderizarHistorial();
+  renderizarFavoritos();
+  renderizarPresets();
+  conectarEstacion();
+})();
+</script>
+</body>
+</html>
