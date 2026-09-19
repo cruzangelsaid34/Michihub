@@ -817,13 +817,46 @@ configurarPWA();
         "groserias": ["puto","puta","putos","putas","pendejo","pendeja","mierda","chingada","chingar","verga","cabron","cabrón","joder","culero","culera","marica","maricon","maricón","hijueputa","hijodeputa"]
     };
 
-    // Devuelve la categoría prohibida detectada en el texto, o null si no hay ninguna
-    function detectarContenidoProhibido(texto){
-        const normalizado = texto.toLowerCase();
+    /* El filtro ignora mayúsculas y acentos, entiende cambios de letras por números o símbolos
+       (put0, p3ndejo, $exo, @rma), letras estiradas (puuuuto) y letras separadas (p u t o, p.u.t.o). */
+    function quitarAcentos(t){
+        return t.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    const EQUIVALENCIAS = { "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s" };
+
+    function aplicarEquivalencias(t){
+        return t.replace(/[013457@$]/g, (c) => EQUIVALENCIAS[c]);
+    }
+
+    // "p u t o", "p.u.t.o", "p-u-t-o"  ->  "puto"
+    function unirLetrasSueltas(t){
+        return t.replace(/\b(?:[a-z0-9][ ._\-*]+){2,}[a-z0-9]\b/g, (m) => m.replace(/[ ._\-*]+/g, ""));
+    }
+
+    // Se arman una sola vez: cada letra acepta repeticiones ("puuuto") y se ignoran los acentos
+    const PATRONES_PROHIBIDOS = [];
+    (function construirPatrones(){
+        const vistos = new Set();
         for(const categoria in PALABRAS_PROHIBIDAS){
             for(const palabra of PALABRAS_PROHIBIDAS[categoria]){
-                const patron = new RegExp("\\b" + palabra.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i");
-                if(patron.test(normalizado)) return categoria;
+                const base = quitarAcentos(palabra.toLowerCase());
+                if(vistos.has(base)) continue;
+                vistos.add(base);
+                const cuerpo = base.split("").map((c) => /[a-z0-9]/.test(c) ? c + "+" : "\\" + c).join("");
+                PATRONES_PROHIBIDOS.push({ categoria, patron: new RegExp("\\b" + cuerpo + "\\b", "i") });
+            }
+        }
+    })();
+
+    // Devuelve la categoría prohibida detectada en el texto, o null si no hay ninguna
+    function detectarContenidoProhibido(texto){
+        const base = quitarAcentos(String(texto).toLowerCase());
+        const equivalente = aplicarEquivalencias(base);
+        const variantes = [base, equivalente, unirLetrasSueltas(base), unirLetrasSueltas(equivalente)];
+        for(const { categoria, patron } of PATRONES_PROHIBIDOS){
+            for(const variante of variantes){
+                if(patron.test(variante)) return categoria;
             }
         }
         return null;
@@ -1093,6 +1126,34 @@ configurarPWA();
         }
 
         return false; // no era un comando de admin reconocido
+    }
+
+    /* ===== ESTADO DE LA CUENTA (bloqueada / suspendida) ===== */
+    async function obtenerRestriccionCuenta(){
+        const correo = obtenerCorreoUsuario();
+        if(!correo || esAdmin()) return null;
+        try{
+            const { data, error } = await supabaseChat
+                .from("cuentas")
+                .select("estado, hasta")
+                .eq("correo", correo)
+                .maybeSingle();
+            if(error || !data) return null;
+            if(data.estado !== "bloqueada" && data.estado !== "suspendida") return null;
+            if(data.hasta && new Date(data.hasta) < new Date()) return null; // ya venció
+            return data;
+        }catch(err){
+            return null;
+        }
+    }
+
+    // Devuelve true si la persona puede escribir; si no, avisa y devuelve false
+    async function puedeEscribirEnChat(){
+        const restriccion = await obtenerRestriccionCuenta();
+        if(!restriccion) return true;
+        const cuando = restriccion.hasta ? " hasta el " + new Date(restriccion.hasta).toLocaleString("es-MX") : "";
+        alert((restriccion.estado === "bloqueada" ? "⛔ Tu cuenta está bloqueada" : "⏸️ Tu cuenta está suspendida") + cuando + ".");
+        return false;
     }
 
     /* NOTIFICACIONES */
@@ -1604,6 +1665,7 @@ configurarPWA();
 
         // Revisar si el chat está cerrado (el admin siempre puede escribir)
         if(!esAdmin()){
+            if(!(await puedeEscribirEnChat())) return;
             const cerrado = await obtenerChatCerrado();
             if(cerrado){
                 alert("El chat está cerrado temporalmente por el administrador.");
@@ -1656,6 +1718,18 @@ configurarPWA();
 
     btnEnviar.addEventListener("click", enviarMensajeChat);
 
+    // Al abrir el chat: si la cuenta está bloqueada o suspendida, se desactiva el envío
+    (async function revisarCuentaAlCargar(){
+        const restriccion = await obtenerRestriccionCuenta();
+        if(!restriccion) return;
+        inputTexto.disabled = true;
+        btnEnviar.disabled = true;
+        inputTexto.placeholder = "Tu cuenta está restringida";
+        mostrarMensajeFantasma(restriccion.estado === "bloqueada"
+            ? "⛔ Tu cuenta está bloqueada. No puedes enviar mensajes por ahora."
+            : "⏸️ Tu cuenta está suspendida. No puedes enviar mensajes por ahora.", 8000);
+    })();
+
     /* ADJUNTAR ARCHIVOS (fotos, videos, audios) y CÁMARA (tomar foto) */
     /* Toggle "ver una vez" para la próxima foto, video o nota de voz */
     let modoVerUnaVez = false;
@@ -1667,6 +1741,7 @@ configurarPWA();
 
     async function subirYEnviarMedia(archivo){
         if(!archivo) return;
+        if(!(await puedeEscribirEnChat())) return;
 
         let tipo = "archivo";
         if(archivo.type.startsWith("image/")) tipo = "imagen";
@@ -1769,6 +1844,7 @@ configurarPWA();
             return;
         }
         navigator.geolocation.getCurrentPosition(async (posicion) => {
+            if(!(await puedeEscribirEnChat())) return;
             const { latitude, longitude } = posicion.coords;
             const link = `https://www.google.com/maps?q=${latitude},${longitude}`;
             const usuario = obtenerNombreUsuario();
@@ -1797,6 +1873,16 @@ configurarPWA();
         if(lugar) texto += `\n📍 ${lugar}`;
 
         const usuario = obtenerNombreUsuario();
+
+        if(!esAdmin()){
+            if(!(await puedeEscribirEnChat())) return;
+            const categoriaProhibida = detectarContenidoProhibido(texto);
+            if(categoriaProhibida){
+                await aplicarInfraccionAutomatica(usuario, obtenerCorreoUsuario(), categoriaProhibida);
+                return;
+            }
+        }
+
         await supabaseChat.from("mensajes").insert([{ usuario, texto, correo: obtenerCorreoUsuario(), avatar_url: obtenerFotoUsuario() }]);
     });
 
