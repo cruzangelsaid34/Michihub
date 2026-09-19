@@ -1,0 +1,192 @@
+LICENCIA DE USO RESTRINGIDO DE MICHIHUB
+Versión 1.0 — 2026
+
+Copyright © 2026 Ángel Said. Todos los derechos reservados.
+
+
+AVISO DE APLICACIÓN
+
+Esta licencia se aplica únicamente a las versiones de Michihub posteriores a la v1.0.1 que se publiquen expresamente bajo esta licencia. Las versiones anteriores que hayan sido distribuidas bajo GNU GPL v3 (v1.0.0 y v1.0.1) conservan los permisos otorgados por dicha licencia y no quedan revocadas por este documento.
+
+Al descargar, instalar, ejecutar, copiar o utilizar una versión de Michihub identificada como sujeta a esta licencia, la persona o entidad usuaria acepta las condiciones aquí descritas.
+
+
+1. DEFINICIONES
+
+1.1. "Michihub" significa el software, código fuente, archivos, diseños, interfaces, documentación, recursos y componentes distribuidos por el titular bajo este nombre.
+
+1.2. "Titular" significa Ángel Said, propietario de los derechos que correspondan sobre Michihub y sobre los elementos originales del proyecto.
+
+1.3. "Usuario" significa cualquier persona o entidad que acceda, ejecute o utilice una versión de Michihub.
+
+1.4. "Versión oficial" significa una versión publicada directamente por el titular o por una persona que cuente con autorización escrita del titular.
+
+1.5. "Versión no oficial" significa cualquier copia, modificación, adaptación, redistribución o publicación que no haya sido autorizada por escrito.
+
+1.6. "Modificar" incluye editar, adaptar, traducir, descompilar, alterar, combinar, reestructurar o crear obras derivadas basadas en Michihub.
+
+
+2. PROPIEDAD Y RESERVA DE DERECHOS
+
+Michihub y sus elementos originales permanecen bajo la titularidad de Ángel Said, salvo que un archivo o componente indique expresamente otro propietario o una licencia diferente.
+
+Todos los derechos no concedidos expresamente en esta licencia quedan reservados. El acceso público al repositorio, a la página web o a cualquier demostración de Michihub no constituye una transferencia de propiedad ni una autorización general para modificar o redistribuir el proyecto.
+
+
+3. PERMISO DE USO
+
+Se concede al Usuario una licencia limitada, personal, revocable, no exclusiva, intransferible y sin derecho de sublicencia para ejecutar y utilizar Michihub con fines personales o internos.
+
+El permiso de uso no incluye, salvo autorización escrita:
+
+- El derecho de modificar el código.
+- El derecho de crear versiones derivadas.
+- El derecho de redistribuir copias.
+- El derecho de publicar el código o sus partes.
+- El derecho de vender, alquilar o sublicenciar el proyecto.
+- El derecho de usar la marca Michihub para un servicio propio.
+- El derecho de permitir que terceros utilicen el proyecto fuera del alcance autorizado.
+
+
+4. USOS PERMITIDOS
+
+Siempre que se respeten las demás condiciones de esta licencia, el Usuario puede:
+
+- Ejecutar una versión oficial para fines personales o internos.
+- Consultar el funcionamiento del proyecto.
+- Utilizar la página pública conforme a sus funciones normales.
+- Realizar copias de seguridad estrictamente personales, siempre que no se distribuyan.
+- Informar errores y proponer mejoras al titular.
+- Solicitar autorización para colaboraciones, modificaciones o usos adicionales.
+
+
+5. PROHIBICIONES
+
+Sin autorización previa y escrita del titular, queda prohibido:
+
+5.1. Copiar, modificar, adaptar, traducir o crear versiones derivadas de Michihub.
+
+5.2. Redistribuir, vender, alquilar, sublicenciar, publicar o poner a disposición de terceros el código o una copia sustancial del proyecto.
+
+5.3. Subir el código, sus archivos o versiones modificadas a otros repositorios, servidores, páginas, tiendas o plataformas.
+
+5.4. Incorporar Michihub total o parcialmente en otro producto, servicio, aplicación o proyecto.
+
+5.5. Eliminar, ocultar, alterar o sustituir avisos de copyright, licencia, autoría, marca o procedencia.
+
+5.6. Presentar una copia o modificación como si fuera una versión oficial de Michihub.
+
+5.7. Usar el nombre, logotipo, diseño, identidad visual o marca Michihub para generar confusión sobre el origen de un proyecto.
+
+5.8. Reclamar autoría sobre el código o los elementos originales creados por el titular.
+
+5.9. Utilizar Michihub para vulnerar cuentas, evadir autenticación, acceder sin autorización a datos, interferir con servicios o realizar actividades ilegales.
+
+5.10. Extraer, recopilar, vender o divulgar datos personales, credenciales, contenido privado o información de usuarios sin autorización legal y expresa.
+
+5.11. Eludir medidas técnicas de seguridad o utilizar fallos del proyecto para perjudicar al titular, a otros usuarios o a terceros.
+
+
+6. AUTORIZACIÓN ESPECIAL
+
+Cualquier modificación, colaboración, distribución, publicación, uso comercial o integración requiere autorización previa y escrita de Ángel Said.
+
+La autorización deberá indicar claramente:
+
+- La persona o entidad autorizada.
+- El uso permitido.
+- Los archivos o partes comprendidos.
+- La duración de la autorización.
+- Si se permite publicar o redistribuir.
+- Las obligaciones de atribución y conservación de avisos.
+
+El silencio del titular, el acceso al repositorio, la descarga del proyecto o la participación en el grupo de Michihub no constituyen autorización.
+
+
+7. VERSIONES MODIFICADAS Y NO OFICIALES
+
+Toda copia o modificación publicada sin autorización será considerada una versión no oficial. No podrá utilizar el nombre Michihub como si fuera una versión oficial ni podrá afirmar que cuenta con respaldo, mantenimiento o aprobación del titular.
+
+Si el titular autoriza una versión modificada, esta deberá:
+
+- Indicar de forma visible que fue modificada.
+- Incluir la fecha y la identidad de quien realizó los cambios.
+- Mantener los avisos de autoría y licencia requeridos.
+- Evitar presentarse como la versión oficial sin autorización expresa.
+- Respetar las condiciones específicas de la autorización concedida.
+
+
+8. MARCAS Y ELEMENTOS VISUALES
+
+Esta licencia no concede derechos sobre marcas, nombres comerciales, logotipos, iconos, diseños, dominios ni elementos de identidad de Michihub.
+
+El uso autorizado del software no autoriza el uso de dichos elementos para promocionar un proyecto no oficial, crear confusión o sugerir una relación con el titular.
+
+
+9. COMPONENTES DE TERCEROS
+
+Los componentes, bibliotecas, imágenes, sonidos, servicios, fuentes, APIs y demás recursos de terceros pueden estar sujetos a licencias independientes. El Usuario debe respetar las condiciones aplicables a esos elementos.
+
+Esta licencia no concede derechos que el titular no posea sobre materiales de terceros ni autoriza el uso de contenido protegido que no pertenezca a Michihub.
+
+
+10. SEGURIDAD Y USO RESPONSABLE
+
+El Usuario no podrá utilizar Michihub para atacar, interferir, suplantar, extraer información, evadir controles de acceso o perjudicar a otros usuarios o servicios.
+
+Los errores de seguridad deberán reportarse de forma responsable al titular, sin explotar, divulgar públicamente ni utilizar el problema antes de que exista una autorización o solución adecuada.
+
+
+11. TERMINACIÓN
+
+El incumplimiento de cualquiera de las condiciones de esta licencia cancela automáticamente los permisos concedidos al infractor, sin perjuicio de otros derechos o recursos legales disponibles.
+
+Después de la terminación, el Usuario deberá detener el uso, eliminar las copias no autorizadas que controle y cesar cualquier distribución, publicación o promoción del material infractor.
+
+La terminación no obliga a retirar copias que hayan sido recibidas legítimamente bajo una licencia anterior que no permita revocación retroactiva, como ocurre con las versiones previamente distribuidas bajo GPL v3.
+
+
+12. SIN GARANTÍA
+
+Michihub se proporciona "tal cual" y "según disponibilidad", sin garantías expresas o implícitas, en la medida permitida por la legislación aplicable.
+
+El titular no garantiza que el proyecto funcione sin interrupciones, errores, vulnerabilidades, pérdida de datos o incompatibilidades con todos los dispositivos, navegadores, servicios o sistemas.
+
+
+13. LIMITACIÓN DE RESPONSABILIDAD
+
+Dentro de lo permitido por la ley, el titular no será responsable por daños directos, indirectos, incidentales, especiales, consecuentes, pérdida de datos, pérdida de ingresos, interrupción del servicio o daños derivados del uso o imposibilidad de uso de Michihub.
+
+Nada de esta cláusula pretende excluir responsabilidades que legalmente no puedan excluirse o limitarse.
+
+
+14. CAMBIOS A ESTA LICENCIA
+
+El titular puede publicar versiones nuevas o revisadas de esta licencia para versiones futuras de Michihub. Cada versión del proyecto deberá indicar qué licencia le aplica.
+
+Una modificación de esta licencia no elimina ni altera los derechos que correspondan a copias distribuidas anteriormente bajo otra licencia válida.
+
+
+15. LEY APLICABLE
+
+Esta licencia deberá interpretarse conforme a la legislación aplicable al titular y al lugar donde se haga valer, sin perjuicio de los derechos irrenunciables reconocidos por la ley.
+
+
+16. SEPARABILIDAD
+
+Si alguna disposición de esta licencia se considera inválida o inaplicable, las demás disposiciones conservarán su validez en la medida permitida por la ley.
+
+
+17. ACUERDO COMPLETO
+
+Esta licencia contiene las condiciones generales de uso de Michihub para las versiones a las que se aplique. Cualquier permiso adicional deberá constar por escrito y ser autorizado por el titular.
+
+
+18. CONTACTO Y AUTORIZACIONES
+
+Las solicitudes de modificación, colaboración, distribución, uso comercial o autorización especial deberán dirigirse al titular a través de su perfil de GitHub (mensaje directo o Issues del repositorio) y conservarse por escrito.
+
+Ninguna autorización verbal, comentario informal, reacción, mensaje ambiguo o participación en una conversación sustituye una autorización escrita que identifique claramente el permiso concedido.
+
+
+Las versiones v1.0.0 y v1.0.1 de Michihub fueron publicadas bajo GNU GPL v3 y conservan los permisos otorgados por esa licencia. Esta licencia restringida solo se aplica a versiones futuras cuyos derechos controla el titular.
