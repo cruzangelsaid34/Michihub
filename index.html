@@ -182,6 +182,21 @@ main{
     padding:20px;
 }
 #login-gate.activo{ display:flex; }
+.btn-github{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:240px;
+    padding:11px 22px;
+    border:none;
+    border-radius:999px;
+    background:var(--text-main);
+    color:var(--bg-base);
+    font-family:inherit;
+    font-size:0.95rem;
+    font-weight:700;
+    cursor:pointer;
+}
 #login-gate h1{
     font-family:'Playfair Display',serif;
     font-size:2.5rem;
@@ -280,13 +295,14 @@ nav.menu-principal a.activo{
 
 <div id="login-gate">
 <h1>MichiHub</h1>
-<p>Inicia sesión con Google para entrar al lounge.</p>
+<p>Inicia sesión con Google o GitHub para entrar al lounge.</p>
 <div id="g_id_onload"
      data-client_id="180603573320-02mmvr7iafpop549a33582dpqjkppm83.apps.googleusercontent.com"
      data-callback="manejarLoginGoogle"
      data-auto_prompt="false">
 </div>
 <div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="outline"></div>
+<button class="btn-github" id="btn-login-github" type="button">🐙 Continuar con GitHub</button>
 </div>
 
 <div id="cuenta-gate">
@@ -536,7 +552,14 @@ if(localStorage.getItem("michihubMusicaEstado") === "reproduciendo"){
 /* SUPABASE: estado de cuenta (suspensión / bloqueo por el administrador) */
 const SUPABASE_URL = "https://veihvfcnczawoycphhga.supabase.co";
 const SUPABASE_KEY = "sb_publishable_DpvZMjPgjcfxCpK5OTJRHw_ah2emZkb";
-const supabaseCuentas = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseCuentas = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { detectSessionInUrl: false } });
+
+/* INICIO DE SESIÓN CON GITHUB
+   Se usa un proyecto de Supabase aparte SOLO para autenticar con GitHub.
+   El resto de la página sigue funcionando exactamente igual que con Google. */
+const GITHUB_SUPABASE_URL = "https://xeongtzcemodcpfdzqws.supabase.co";
+const GITHUB_SUPABASE_KEY = "sb_publishable_IxRc3zvk4U-CffDnqNzAcQ_4UaoPCp3";
+const supabaseGitHub = window.supabase.createClient(GITHUB_SUPABASE_URL, GITHUB_SUPABASE_KEY);
 
 // Consulta el estado de la cuenta en Supabase (por correo de Google). Si el tiempo de restricción ya venció, se trata como activa.
 async function obtenerEstadoCuenta(correo){
@@ -630,7 +653,56 @@ async function manejarLoginGoogle(response){
     buscarID();
 }
 
+async function loginConGitHub(){
+    if(GITHUB_SUPABASE_KEY.indexOf("sb_publishable_") !== 0){
+        alert("Falta pegar la clave de Supabase para GitHub (GITHUB_SUPABASE_KEY).");
+        return;
+    }
+    const { error } = await supabaseGitHub.auth.signInWithOAuth({
+        provider: "github",
+        options: {
+            redirectTo: location.origin + location.pathname,
+            scopes: "read:user user:email"
+        }
+    });
+    if(error){
+        console.error("Error iniciando sesión con GitHub:", error);
+        alert("No se pudo iniciar sesión con GitHub. Intenta de nuevo.");
+    }
+}
+
+// Se ejecuta al volver de GitHub, cuando ya hay sesión
+async function completarLoginGitHub(user){
+    const meta = user.user_metadata || {};
+    const email = user.email || meta.email || "";
+
+    // MichiHub identifica cuentas por correo: sin correo no se puede continuar
+    if(!email){
+        await supabaseGitHub.auth.signOut();
+        alert("Tu cuenta de GitHub no comparte un correo. Hazlo visible en GitHub (Settings > Emails) o usa Google.");
+        document.getElementById("login-gate").classList.add("activo");
+        return;
+    }
+
+    const nombre = meta.full_name || meta.name || meta.user_name || email;
+
+    if(await verificarRestriccionCuenta(email)) return;
+
+    localStorage.setItem("michihubLogueado", "true");
+    localStorage.setItem("michihubNombre", nombre);
+    localStorage.setItem("michihubEmail", email);
+    localStorage.setItem("michihubFoto", meta.avatar_url || "");
+
+    document.getElementById("login-gate").classList.remove("activo");
+    document.getElementById("link-cerrar-sesion").style.display = "inline-block";
+    document.getElementById("nickInput").value = nombre;
+    buscarID();
+}
+
+document.getElementById("btn-login-github").addEventListener("click", loginConGitHub);
+
 async function cerrarSesion(){
+    try{ await supabaseGitHub.auth.signOut(); }catch(err){ console.warn(err); }
     await supabaseCuentas.auth.signOut();
     localStorage.removeItem("michihubLogueado");
     localStorage.removeItem("michihubNombre");
@@ -643,6 +715,16 @@ async function cerrarSesion(){
     let logueado = localStorage.getItem("michihubLogueado") === "true";
 
     if(!logueado){
+        try{
+            const r = await supabaseGitHub.auth.getSession();
+            const usuarioGH = r && r.data && r.data.session ? r.data.session.user : null;
+            if(usuarioGH && usuarioGH.app_metadata && usuarioGH.app_metadata.provider === "github"){
+                await completarLoginGitHub(usuarioGH);
+                return;
+            }
+        }catch(err){
+            console.warn("No se pudo leer la sesión de GitHub:", err);
+        }
         document.getElementById("login-gate").classList.add("activo");
     }else{
         let nombreGuardado = localStorage.getItem("michihubNombre");
