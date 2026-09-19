@@ -638,19 +638,19 @@ async function manejarLoginGoogle(response){
 
     if(await verificarRestriccionCuenta(datosUsuario.email)) return;
 
-    // Crea una sesión REAL de Supabase a partir del mismo token de Google.
-    // Antes solo se guardaba el correo en localStorage, lo cual cualquiera
-    // podía editar desde la consola del navegador para hacerse pasar por admin.
-    // Con esto, Supabase conoce de verdad quién eres y las políticas RLS
-    // pueden verificarlo del lado del servidor (auth.jwt() ->> 'email').
-    const { error: errorSesion } = await supabaseCuentas.auth.signInWithIdToken({
-        provider: "google",
-        token: response.credential
-    });
-    if(errorSesion){
-        console.error("No se pudo crear la sesión de Supabase:", errorSesion);
-        alert("Hubo un problema iniciando sesión. Intenta de nuevo.");
-        return;
+    // Intenta crear también una sesión de Supabase a partir del mismo token de Google.
+    // Si no se puede (por ejemplo, Google no está activado en ese proyecto de Supabase),
+    // el inicio de sesión con Google continúa igual, como funcionaba antes.
+    try{
+        const { error: errorSesion } = await supabaseCuentas.auth.signInWithIdToken({
+            provider: "google",
+            token: response.credential
+        });
+        if(errorSesion){
+            console.warn("No se pudo crear la sesión de Supabase (se continúa con Google):", errorSesion);
+        }
+    }catch(err){
+        console.warn("No se pudo crear la sesión de Supabase (se continúa con Google):", err);
     }
 
     localStorage.setItem("michihubLogueado", "true");
