@@ -750,6 +750,32 @@ async function cerrarSesion(){
 
 document.getElementById("link-cerrar-sesion").addEventListener("click", cerrarSesion);
 
+/* SEGURIDAD: escapar texto antes de meterlo en HTML */
+function escaparHTML(texto){
+    return String(texto == null ? "" : texto)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+// Solo acepta imágenes en data:image/... (base64) o direcciones http(s)
+function urlImagenSegura(valor){
+    if(!valor) return "";
+    const v = String(valor);
+    if(/^data:image\/(png|jpeg|jpg|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(v)) return v;
+    try{
+        const u = new URL(v, location.href);
+        if(u.protocol === "https:" || u.protocol === "http:") return escaparHTML(u.href);
+    }catch(err){}
+    return "";
+}
+
+function nombreArchivoSeguro(nombre){
+    return String(nombre).replace(/[^\wÀ-ÿ .-]/g, "_");
+}
+
 /* BUSCAR */
 function buscarID(){
     let nombre = document.getElementById("nickInput").value.trim();
@@ -767,7 +793,7 @@ function buscarID(){
 
         if(data.expiracionISO && new Date() > new Date(data.expiracionISO)){
             localStorage.removeItem("credencial_" + nombre);
-            resultado.innerHTML = `La credencial de <b>${nombre}</b> expiró el ${data.expiracion} y fue eliminada automáticamente.`;
+            resultado.innerHTML = `La credencial de <b>${escaparHTML(nombre)}</b> expiró el ${escaparHTML(data.expiracion)} y fue eliminada automáticamente.`;
             return;
         }
 
@@ -780,15 +806,16 @@ function buscarID(){
 /* RENDERIZADO DE RESULTADO + ACCIONES (regenerar / eliminar) */
 function mostrarResultadoCredencial(nombre, data, mensajeExtra){
     let resultado = document.getElementById("resultado-id");
+    const imgSegura = urlImagenSegura(data.img);
     resultado.innerHTML = `
-        <img src="${data.img}" class="id-image">
+        ${imgSegura ? `<img src="${imgSegura}" class="id-image">` : ""}
         <p style="font-size:1.1rem;font-weight:bold;color:#b09e8d;margin:10px 0;">✨ Credencial asegurada con éxito</p>
-        ${data.fecha ? `<p>📅 Creado: ${data.fecha}${data.hora ? " - " + data.hora : ""}</p>` : ""}
-        ${data.ubicacion ? `<p>📍 Ubicación: ${data.ubicacion}</p>` : ""}
-        ${data.expiracion ? `<p>Válido hasta: <b>${data.expiracion}</b></p>` : ""}
-        ${mensajeExtra ? `<p>${mensajeExtra}</p>` : ""}
+        ${data.fecha ? `<p>📅 Creado: ${escaparHTML(data.fecha)}${data.hora ? " - " + escaparHTML(data.hora) : ""}</p>` : ""}
+        ${data.ubicacion ? `<p>📍 Ubicación: ${escaparHTML(data.ubicacion)}</p>` : ""}
+        ${data.expiracion ? `<p>Válido hasta: <b>${escaparHTML(data.expiracion)}</b></p>` : ""}
+        ${mensajeExtra ? `<p>${escaparHTML(mensajeExtra)}</p>` : ""}
         <div class="credencial-acciones">
-            <a href="${data.img}" download="credencial_${nombre}.png" class="btn-descarga">Descargar</a>
+            ${imgSegura ? `<a href="${imgSegura}" download="credencial_${escaparHTML(nombreArchivoSeguro(nombre))}.png" class="btn-descarga">Descargar</a>` : ""}
         </div>
     `;
 
@@ -992,7 +1019,11 @@ document.addEventListener("DOMContentLoaded", () => {
         if(e.target.files && e.target.files[0]){
             let reader = new FileReader();
             reader.onload = (evt) => {
-                preview.innerHTML = `<img src="${evt.target.result}" style="max-width:150px;max-height:150px;border-radius:8px;margin-top:10px;">`;
+                preview.innerHTML = "";
+                let imgPrev = document.createElement("img");
+                imgPrev.src = evt.target.result;
+                imgPrev.style.cssText = "max-width:150px;max-height:150px;border-radius:8px;margin-top:10px;";
+                preview.appendChild(imgPrev);
                 campFotoUrl.value = "";
             };
             reader.readAsDataURL(e.target.files[0]);
@@ -1001,7 +1032,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if(campFotoUrl) campFotoUrl.addEventListener("input", (e) => {
         if(e.target.value){
-            preview.innerHTML = `<img src="${e.target.value}" style="max-width:150px;max-height:150px;border-radius:8px;margin-top:10px;onerror=this.src=''" onload="">`;
+            preview.innerHTML = "";
+            let imgPrev = document.createElement("img");
+            imgPrev.src = e.target.value;
+            imgPrev.style.cssText = "max-width:150px;max-height:150px;border-radius:8px;margin-top:10px;";
+            preview.appendChild(imgPrev);
             campFoto.value = "";
         }else{
             preview.innerHTML = "";
@@ -1312,8 +1347,15 @@ async function buscarImagenes(){
         data.results.forEach(img => {
             let div = document.createElement("div");
             div.className = "img-result";
-            div.innerHTML = `<img src="${img.thumbnail || img.url}" alt="${(img.title || query).replace(/"/g,'')}" loading="lazy">`;
-            div.querySelector("img").onclick = () => window.open(img.url, "_blank");
+            let imgEl = document.createElement("img");
+            imgEl.src = img.thumbnail || img.url;
+            imgEl.alt = img.title || query;
+            imgEl.loading = "lazy";
+            div.appendChild(imgEl);
+            imgEl.onclick = () => {
+                // solo se abren direcciones http(s)
+                if(/^https?:\/\//i.test(String(img.url))) window.open(img.url, "_blank", "noopener");
+            };
 
             let btnDescarga = document.createElement("button");
             btnDescarga.className = "img-download";

@@ -1158,10 +1158,21 @@ configurarPWA();
         });
     }
 
+    // Escapa texto para poder meterlo en HTML, tanto entre etiquetas como dentro de atributos ("comillas")
     function escaparHTML(texto){
         let div = document.createElement("div");
         div.innerText = texto;
-        return div.innerHTML;
+        return div.innerHTML.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
+    // Solo deja pasar direcciones http(s) (bloquea javascript:, data:, etc.) y las deja listas para usar en un atributo
+    function urlSegura(valor){
+        if(!valor) return "";
+        try{
+            const u = new URL(String(valor), location.href);
+            if(u.protocol === "https:" || u.protocol === "http:") return escaparHTML(u.href);
+        }catch(err){}
+        return "";
     }
 
     function resaltarMenciones(texto){
@@ -1189,17 +1200,20 @@ configurarPWA();
             return `<div class="media-una-vez abrir">${etiqueta}</div>`;
         }
 
+        const urlMedia = urlSegura(msg.media_url);
+        if(!urlMedia) return "";
+
         if(msg.media_tipo === "imagen"){
-            return `<img src="${msg.media_url}" class="media-chat">`;
+            return `<img src="${urlMedia}" class="media-chat" alt="">`;
         }
         if(msg.media_tipo === "video"){
-            return `<video src="${msg.media_url}" class="media-chat" controls></video>`;
+            return `<video src="${urlMedia}" class="media-chat" controls></video>`;
         }
         if(msg.media_tipo === "audio"){
-            return `<audio src="${msg.media_url}" controls style="margin-top:6px;width:100%;"></audio>`;
+            return `<audio src="${urlMedia}" controls style="margin-top:6px;width:100%;"></audio>`;
         }
         if(msg.media_tipo === "ubicacion"){
-            return `<br><a href="${msg.media_url}" target="_blank" rel="noopener" style="color:#4a4238;font-weight:bold;">📍 Ver ubicación en el mapa</a>`;
+            return `<br><a href="${urlMedia}" target="_blank" rel="noopener noreferrer" style="color:#4a4238;font-weight:bold;">📍 Ver ubicación en el mapa</a>`;
         }
         return "";
     }
@@ -1235,10 +1249,12 @@ configurarPWA();
         const correo = obtenerCorreoUsuario() || obtenerNombreUsuario();
         let html = "";
         for(const emoji in reacciones){
-            const lista = reacciones[emoji] || [];
-            if(!lista.length) continue;
+            if(emoji.length > 16) continue; // una reacción real es un emoji, no un texto largo
+            const lista = reacciones[emoji];
+            if(!Array.isArray(lista) || !lista.length) continue;
             const mia = lista.includes(correo);
-            html += `<span class="msg-reaccion${mia ? ' mia' : ''}" data-emoji-click="${emoji}">${emoji} ${lista.length}</span>`;
+            const emojiSeguro = escaparHTML(emoji);
+            html += `<span class="msg-reaccion${mia ? ' mia' : ''}" data-emoji-click="${emojiSeguro}">${emojiSeguro} ${lista.length}</span>`;
         }
         return html ? `<div class="msg-reacciones">${html}</div>` : "";
     }
@@ -1308,8 +1324,9 @@ configurarPWA();
         }
 
         const colorUsuario = colorParaUsuario(msg.usuario);
-        const avatarHTML = msg.avatar_url
-            ? `<img src="${msg.avatar_url}">`
+        const urlAvatar = urlSegura(msg.avatar_url);
+        const avatarHTML = urlAvatar
+            ? `<img src="${urlAvatar}" alt="" referrerpolicy="no-referrer">`
             : `${escaparHTML((msg.usuario||"?").charAt(0).toUpperCase())}`;
 
         const esMensajeAdmin = msg.usuario && msg.usuario !== "Anónimo" && esNombreAdmin(msg.usuario);
@@ -1459,9 +1476,11 @@ configurarPWA();
 
     async function abrirMediaUnaVez(id, tipo, url){
         let html = "";
-        if(tipo === "imagen") html = `<img src="${url}">`;
-        else if(tipo === "video") html = `<video src="${url}" controls autoplay></video>`;
-        else if(tipo === "audio") html = `<audio src="${url}" controls autoplay></audio>`;
+        const urlMedia = urlSegura(url);
+        if(!urlMedia) return;
+        if(tipo === "imagen") html = `<img src="${urlMedia}" alt="">`;
+        else if(tipo === "video") html = `<video src="${urlMedia}" controls autoplay></video>`;
+        else if(tipo === "audio") html = `<audio src="${urlMedia}" controls autoplay></audio>`;
         else return;
 
         visorUnaVezContenido.innerHTML = html;
