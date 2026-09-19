@@ -252,6 +252,22 @@ nav.menu-principal a.activo{
     color:white;
 }
 
+
+/* REFLEXIÓN MICHI DEL DÍA */
+.reflexion-card{text-align:center;position:relative}
+.reflexion-fecha{font-size:0.85rem;opacity:0.65;margin-bottom:14px}
+.reflexion-texto{
+    font-family:'Playfair Display',serif;
+    font-style:italic;
+    font-size:1.45rem;
+    line-height:1.5;
+    margin:0 auto 22px;
+    max-width:30ch;
+}
+.reflexion-acciones{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.reflexion-estado{min-height:1.2em;margin-top:12px;font-size:0.85rem;opacity:0.75}
+.reflexion-acciones .btn-accion:focus-visible{outline:3px solid var(--text-main);outline-offset:2px}
+
 </style>
 </head>
 
@@ -308,6 +324,18 @@ nav.menu-principal a.activo{
 </nav>
 
 <main>
+
+<div class="card reflexion-card" id="reflexion-michi">
+<h2 class="card-title">Reflexión Michi del día</h2>
+<p class="reflexion-fecha" id="reflexion-fecha"></p>
+<p class="reflexion-texto" id="reflexion-texto"></p>
+<div class="reflexion-acciones">
+<button class="btn-accion" id="reflexion-compartir">Compartir</button>
+<button class="btn-accion" id="reflexion-copiar">Copiar</button>
+<button class="btn-accion" id="reflexion-imagen">Guardar imagen</button>
+</div>
+<div class="reflexion-estado" id="reflexion-estado" role="status" aria-live="polite"></div>
+</div>
 
 <div class="card">
 <h2 class="card-title">Identificación</h2>
@@ -1360,6 +1388,264 @@ function resetBoard(){
 
 initMemory();
 
+</script>
+
+
+<script>
+/* REFLEXIÓN MICHI DEL DÍA
+   - Una reflexión por día calendario (fecha local), igual para todos los usuarios de una misma zona horaria.
+   - Sin repetir: el orden de cada "ciclo" es una permutación pseudoaleatoria con semilla; se agotan todas
+     las reflexiones antes de empezar un nuevo ciclo (y se evita repetir la del último día del ciclo anterior).
+   - Para añadir más reflexiones basta con agregarlas al FINAL del arreglo (no reordenar ni borrar las
+     existentes, o el orden de los días futuros cambiará). */
+(function(){
+const REFLEXIONES_MICHI = [
+    "Un gato no se disculpa por descansar. Descansar también es trabajo.",
+    "Si algo te queda grande hoy, siéntate en la caja que sí te queda.",
+    "No todo lo que se cae de la mesa necesitaba ser empujado, pero a veces ayuda a soltar.",
+    "Estirarte despacio antes de empezar el día también cuenta como empezar.",
+    "Puedes ignorar lo que no te suma sin dar explicaciones.",
+    "La curiosidad sin prisa llega a lugares donde la prisa no entra.",
+    "Busca el rayo de sol de tu día y quédate ahí un rato.",
+    "Ronronear es decirle al mundo que estás bien, aunque sea en voz baja.",
+    "Cuando no entiendas algo, obsérvalo en silencio. Casi siempre se explica solo.",
+    "No tienes que estar disponible para todos a todas horas.",
+    "Cazar mariposas imaginarias también es una forma de entrenar la atención.",
+    "Aterrizar de pie no es suerte: es practicar caer muchas veces.",
+    "Hoy elige una sola cosa y hazla con toda tu atención.",
+    "Pedir cariño cuando lo necesitas no es debilidad.",
+    "El mejor momento para dormir una siesta suele ser el que ya sientes.",
+    "Los límites claros, dichos con calma, se respetan mejor que los gritos.",
+    "Lo suave no es lo contrario de lo fuerte.",
+    "Si la puerta está cerrada, espera. O maúlla. Pero no te rasques por dentro.",
+    "A veces la mejor respuesta es mirar por la ventana y respirar.",
+    "Cada día es una oportunidad de explorar un rincón que ya conoces con ojos nuevos.",
+    "Cuidar tu espacio es cuidarte a ti.",
+    "No compares tu ritmo con el de otro: cada gato tiene su hora de correr.",
+    "Tu paz vale más que tener la razón.",
+    "Lo que empieza con un pequeño salto puede terminar en la estantería más alta.",
+    "Descansa antes de estar agotado, no después.",
+    "Se puede ser independiente y aun así buscar compañía.",
+    "Un buen lugar se reconoce porque ahí te dan ganas de estirarte.",
+    "Perder el rumbo un rato es parte de explorar.",
+    "Vuelve a lo básico: comer, beber, moverte, dormir, jugar.",
+    "No lo tomes personal: a veces el gato solo tenía otros planes.",
+    "Tu atención es un regalo, no la repartas a quien no la cuida.",
+    "Jugar no es perder el tiempo. Es la forma más antigua de aprender.",
+    "Si algo te da miedo, míralo de lejos, acércate poco a poco y decide después.",
+    "No hay prisa por ser útil todo el tiempo.",
+    "Pequeñas rutinas hacen grandes días.",
+    "Descubrir tu lugar favorito de la casa ya es un logro.",
+    "Sé amable con quien está aprendiendo a acercarse.",
+    "Hoy puedes cambiar de opinión sin dar explicaciones largas.",
+    "Un buen amigo se queda contigo en silencio y no se va.",
+    "La calma no es ausencia de ruido, es saber dónde acurrucarte.",
+    "Aprende a distinguir entre lo urgente y lo que solo hace ruido.",
+    "Algunas noches lo mejor es apagar todo y escuchar la lluvia.",
+    "Si te equivocaste, límpiate las patas y sigue caminando con dignidad.",
+    "No necesitas justificar tus ganas de descansar.",
+    "Observa más, reacciona menos.",
+    "Todo lo que se disfruta con calma dura más.",
+    "Hay días de ir por la lámpara y días de quedarse en la manta. Ambos valen.",
+    "El mundo se ve distinto desde arriba del armario. Cambia de perspectiva.",
+    "Volver a casa también es una forma de avanzar.",
+    "Escucha a tu cuerpo: sabe cuándo es hora de moverse y cuándo de quedarse quieto.",
+    "No todas las batallas merecen tus uñas.",
+    "Un poco de leche tibia y música baja arreglan más de lo que parece.",
+    "Lo que hoy no salió puede esperar a mañana sin culpa.",
+    "Elige con quién compartes tu sofá.",
+    "Ser cuidadoso no es ser miedoso: es saber dónde pisas.",
+    "Agradece las cosas pequeñas: una manta, un rincón tibio, un plato lleno.",
+    "Deja que las cosas buenas te encuentren; a veces ya vienen en camino.",
+    "Da vueltas las veces que necesites antes de acostarte. Nadie te apura.",
+    "Tu forma de ser es suficiente, incluso cuando nadie te aplaude.",
+    "Cuando dudes, haz una pausa, estírate y vuelve a mirar.",
+    "Confía en tu instinto, pero verifica que la caja tenga fondo.",
+    "Que el día termine con algo que te haga ronronear."
+];
+
+function crearAleatorio(semilla){
+    let a = semilla >>> 0;
+    return function(){
+        a = (a + 0x6D2B79F5) >>> 0;
+        let t = a;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+function permutacionBase(ciclo){
+    const n = REFLEXIONES_MICHI.length;
+    const orden = Array.from({length: n}, (_, i) => i);
+    const rnd = crearAleatorio(Math.imul(ciclo + 1, 2654435761) ^ 0x9E3779B9);
+    for(let i = n - 1; i > 0; i--){
+        const j = Math.floor(rnd() * (i + 1));
+        [orden[i], orden[j]] = [orden[j], orden[i]];
+    }
+    return orden;
+}
+
+function permutacionCiclo(ciclo){
+    const orden = permutacionBase(ciclo);
+    if(ciclo > 0){
+        const anterior = permutacionBase(ciclo - 1);
+        // Evita repetir el último día del ciclo anterior el primer día del nuevo
+        if(orden[0] === anterior[anterior.length - 1]){
+            [orden[0], orden[1]] = [orden[1], orden[0]];
+        }
+    }
+    return orden;
+}
+
+function reflexionDelDia(fecha){
+    const dia = Math.floor(Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()) / 86400000);
+    const n = REFLEXIONES_MICHI.length;
+    const ciclo = Math.floor(dia / n);
+    const posicion = dia % n;
+    return REFLEXIONES_MICHI[permutacionCiclo(ciclo)[posicion]];
+}
+
+const hoy = new Date();
+const texto = reflexionDelDia(hoy);
+const fechaTxt = hoy.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
+
+document.getElementById("reflexion-fecha").textContent = fechaTxt.charAt(0).toUpperCase() + fechaTxt.slice(1);
+document.getElementById("reflexion-texto").textContent = "“" + texto + "”";
+
+const estado = document.getElementById("reflexion-estado");
+let estadoTimeout = null;
+function avisar(msg){
+    estado.textContent = msg;
+    clearTimeout(estadoTimeout);
+    estadoTimeout = setTimeout(() => { estado.textContent = ""; }, 3000);
+}
+
+function textoParaCompartir(){
+    return "🐾 Reflexión Michi del día\n\n“" + texto + "”\n\n— MichiHub";
+}
+
+async function copiarTexto(){
+    const contenido = textoParaCompartir() + "\n" + location.href.split("#")[0];
+    try{
+        await navigator.clipboard.writeText(contenido);
+        avisar("Copiado al portapapeles.");
+    }catch(err){
+        avisar("No se pudo copiar. Selecciona el texto y cópialo a mano.");
+    }
+}
+
+document.getElementById("reflexion-copiar").addEventListener("click", copiarTexto);
+
+document.getElementById("reflexion-compartir").addEventListener("click", async () => {
+    if(navigator.share){
+        try{
+            await navigator.share({ title: "Reflexión Michi", text: textoParaCompartir(), url: location.href.split("#")[0] });
+        }catch(err){
+            if(err && err.name !== "AbortError") avisar("No se pudo compartir.");
+        }
+    }else{
+        copiarTexto();
+    }
+});
+
+function dividirLineas(ctx, texto, anchoMax){
+    const palabras = texto.split(" ");
+    const lineas = [];
+    let actual = "";
+    palabras.forEach(p => {
+        const prueba = actual ? actual + " " + p : p;
+        if(ctx.measureText(prueba).width > anchoMax && actual){
+            lineas.push(actual);
+            actual = p;
+        }else{
+            actual = prueba;
+        }
+    });
+    if(actual) lineas.push(actual);
+    return lineas;
+}
+
+async function generarImagen(){
+    try{ await document.fonts.load("italic 56px 'Playfair Display'"); }catch(e){}
+
+    const tam = 1080;
+    const canvas = document.createElement("canvas");
+    canvas.width = tam;
+    canvas.height = tam;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#f4f0ea";
+    ctx.fillRect(0, 0, tam, tam);
+    ctx.strokeStyle = "#b09e8d";
+    ctx.lineWidth = 10;
+    ctx.strokeRect(50, 50, tam - 100, tam - 100);
+
+    // Huellita
+    ctx.fillStyle = "#b09e8d";
+    const cx = tam / 2, cy = 200;
+    [[-60, 8, 20], [-22, -14, 20], [22, -14, 20], [60, 8, 20]].forEach(([dx, dy, r]) => {
+        ctx.beginPath(); ctx.arc(cx + dx, cy + dy, r, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.beginPath(); ctx.ellipse(cx, cy + 55, 38, 28, 0, 0, Math.PI * 2); ctx.fill();
+
+    // Texto
+    ctx.fillStyle = "#4a4238";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    let fuente = 60;
+    let lineas;
+    do{
+        ctx.font = "italic " + fuente + "px 'Playfair Display', Georgia, serif";
+        lineas = dividirLineas(ctx, "“" + texto + "”", tam - 260);
+        fuente -= 4;
+    }while(lineas.length * (fuente + 4) * 1.4 > 560 && fuente > 30);
+
+    const alto = (fuente + 4) * 1.4;
+    const inicio = 560 - ((lineas.length - 1) * alto) / 2;
+    lineas.forEach((l, i) => ctx.fillText(l, tam / 2, inicio + i * alto));
+
+    ctx.font = "bold 30px Nunito, Arial, sans-serif";
+    ctx.fillStyle = "#b09e8d";
+    ctx.fillText("Reflexión Michi del día", tam / 2, 900);
+    ctx.font = "26px Nunito, Arial, sans-serif";
+    ctx.fillStyle = "#4a4238";
+    ctx.fillText("MichiHub", tam / 2, 950);
+
+    return canvas;
+}
+
+document.getElementById("reflexion-imagen").addEventListener("click", async () => {
+    avisar("Generando imagen...");
+    try{
+        const canvas = await generarImagen();
+        const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
+        const nombre = "reflexion-michi-" + hoy.toISOString().slice(0, 10) + ".png";
+        const archivo = new File([blob], nombre, { type: "image/png" });
+
+        if(navigator.canShare && navigator.canShare({ files: [archivo] })){
+            try{
+                await navigator.share({ files: [archivo], title: "Reflexión Michi" });
+                estado.textContent = "";
+                return;
+            }catch(err){
+                if(err && err.name === "AbortError"){ estado.textContent = ""; return; }
+            }
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = nombre;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        avisar("Imagen guardada.");
+    }catch(err){
+        avisar("No se pudo generar la imagen.");
+    }
+});
+})();
 </script>
 
 </body>
