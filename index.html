@@ -966,7 +966,7 @@ const inicio=${inicioSesion};
 const reloj=document.getElementById("reloj");
 function actualizar(){const total=Math.max(0,Date.now()-inicio);const s=Math.floor(total/1000);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;reloj.textContent=[h,m,x].map(n=>String(n).padStart(2,"0")).join(":");}
 actualizar();setInterval(actualizar,1000);
-</script>
+<\/script>
 </body>
 </html>`;
     try{
