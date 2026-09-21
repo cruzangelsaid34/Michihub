@@ -1133,13 +1133,17 @@ async function borrarRepoGitHubAutomatico(providerToken, usuarioGH){
     if(!providerToken || !usuarioGH) return;
     const nombreRepo = "michihub-" + usuarioGH;
 
+    let temporizador;
     try{
+        const controlador = new AbortController();
+        temporizador = setTimeout(() => controlador.abort(), 8000);
         const resp = await fetch("https://api.github.com/repos/" + usuarioGH + "/" + nombreRepo, {
             method: "DELETE",
             headers: {
                 "Authorization": "Bearer " + providerToken,
                 "Accept": "application/vnd.github+json"
-            }
+            },
+            signal: controlador.signal
         });
         if(resp.ok || resp.status === 404){
             console.log("Repositorio '" + nombreRepo + "' eliminado de GitHub.");
@@ -1150,6 +1154,7 @@ async function borrarRepoGitHubAutomatico(providerToken, usuarioGH){
     }catch(err){
         console.warn("Error de red borrando el repositorio en GitHub:", err);
     }finally{
+        clearTimeout(temporizador);
         // Para que se vuelva a crear (con README nuevo) en el próximo login
         localStorage.removeItem("michihubRepoCreado_" + usuarioGH);
     }
