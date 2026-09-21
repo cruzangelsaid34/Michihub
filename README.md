@@ -6,7 +6,7 @@ MichiHub es una plataforma social y un lounge digital con reflexiones diarias, j
 
 ### Documentación
 
-[🔐 Security](SECURITY.md) · [📜 Historia](HISTORIA.md)
+[🔐 Security](SECURITY.md) · [📜 Nuestra historia](HISTORIA.md)
 
 ## Propiedad intelectual
 
