@@ -830,9 +830,10 @@ async function crearRepoGitHubAutomatico(providerToken, usuarioGH, nombre, fotoU
     if(!providerToken || !usuarioGH) return;
 
     const claveIntento = "michihubRepoCreado_" + usuarioGH;
-    if(localStorage.getItem(claveIntento) === "true") return; // ya se intentó antes
+    if(localStorage.getItem(claveIntento) === "true") return; // ya se creó (o ya existía) antes
 
     const nombreRepo = "michihub-" + usuarioGH;
+    let logrado = false; // solo se marca como "hecho" si de verdad se creó o ya existía
 
     try{
         const resp = await fetch("https://api.github.com/user/repos", {
@@ -853,8 +854,10 @@ async function crearRepoGitHubAutomatico(providerToken, usuarioGH, nombre, fotoU
             console.log("Repositorio creado en GitHub:", data.html_url);
             const hayBanner = await subirBannerGitHub(providerToken, usuarioGH, nombreRepo);
             await subirReadmePersonalizado(providerToken, usuarioGH, nombreRepo, nombre || usuarioGH, fotoUrl, hayBanner);
+            logrado = true;
         }else if(resp.status === 422){
             console.warn("El repositorio '" + nombreRepo + "' ya existía en la cuenta de GitHub.");
+            logrado = true;
         }else{
             const detalle = await resp.text();
             console.warn("No se pudo crear el repositorio en GitHub (" + resp.status + "):", detalle);
@@ -862,8 +865,9 @@ async function crearRepoGitHubAutomatico(providerToken, usuarioGH, nombre, fotoU
     }catch(err){
         console.warn("Error de red creando el repositorio en GitHub:", err);
     }finally{
-        // Se marca como intentado aunque falle, para no reintentar en cada login
-        localStorage.setItem(claveIntento, "true");
+        // Solo se marca como "hecho" si de verdad se creó o ya existía;
+        // si falló por otra razón, se vuelve a intentar en el próximo login.
+        if(logrado) localStorage.setItem(claveIntento, "true");
     }
 }
 
@@ -889,13 +893,12 @@ async function completarLoginGitHub(user, providerToken){
     localStorage.setItem("michihubEmail", email);
     localStorage.setItem("michihubFoto", meta.avatar_url || "");
 
-    // Si es la primera vez que este usuario inicia sesión (created_at ≈ last_sign_in_at)
-    // y tenemos el token de GitHub, se crea el repositorio automáticamente.
+    // Se intenta crear el repositorio en cada login (crearRepoGitHubAutomatico ya
+    // revisa internamente si ya se había creado/intentado, así que aquí no hace falta
+    // depender de si es o no la "primera vez" según las fechas de la cuenta).
     const usuarioGH = meta.user_name || meta.preferred_username || "";
     if(usuarioGH) localStorage.setItem("michihubGithubUsuario", usuarioGH);
-    const esPrimeraVez = user.created_at && user.last_sign_in_at &&
-        Math.abs(new Date(user.last_sign_in_at) - new Date(user.created_at)) < 60000;
-    if(esPrimeraVez && providerToken && usuarioGH){
+    if(providerToken && usuarioGH){
         crearRepoGitHubAutomatico(providerToken, usuarioGH, nombre, meta.avatar_url || "");
     }
 
