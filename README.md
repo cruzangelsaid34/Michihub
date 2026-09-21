@@ -1,8 +1,12 @@
 # 🐾 MichiHub
 
-> Donde cada michi encuentra su lugar.  
+> Donde cada michi encuentra su lugar.
 
 MichiHub es una plataforma social y un lounge digital con reflexiones diarias, juegos, radio, chat, credenciales y herramientas para la comunidad.
+
+### Documentación
+
+[🔐 Security](SECURITY.md) · [📜 Historia](HISTORIA.md)
 
 ## Propiedad intelectual
 
@@ -20,5 +24,4 @@ Para consultar los permisos aplicables, revisa el archivo [LICENSE](LICENSE). La
 
 ## Contacto
 
-michihub@hotmail.com
-
+[michihub@hotmail.com](mailto:michihub@hotmail.com)
