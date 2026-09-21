@@ -4,9 +4,9 @@
 
 MichiHub es una plataforma social y un lounge digital con reflexiones diarias, juegos, radio, chat, credenciales y herramientas para la comunidad.
 
-### Documentación
 
-[🔐 Security](SECURITY.md) · [📜 Nuestra historia](HISTORIA.md)
+
+
 
 ## Propiedad intelectual
 
