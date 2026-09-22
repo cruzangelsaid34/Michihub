@@ -167,6 +167,26 @@ main{
 .runner-opcion:focus-visible{outline:3px solid var(--text-main);outline-offset:2px}
 .runner-punto{width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,0.25);flex:0 0 auto}
 
+/* MICHI PUZZLE */
+.puzzle-tablero{
+    display:grid;
+    gap:2px;
+    background:rgba(0,0,0,0.15);
+    border-radius:8px;
+    overflow:hidden;
+    aspect-ratio:1;
+    touch-action:manipulation;
+    user-select:none;
+    -webkit-user-select:none;
+}
+.puzzle-pieza{
+    background-repeat:no-repeat;
+    cursor:pointer;
+    transition:transform 0.08s ease;
+}
+.puzzle-pieza:active{ transform:scale(0.96); }
+.puzzle-vacio{ background:#fff; cursor:default; }
+
 /* PANTALLA DE CARGA */
 #loading-screen{
     position:fixed;
@@ -512,6 +532,25 @@ Crear Credencial
 </div>
 <div class="atrapa-controles">
 <button type="button" class="btn-accion" id="runner-boton">Jugar</button>
+</div>
+</div>
+
+<div class="card">
+<h2 class="card-title">🐾🧩 Michi Puzzle</h2>
+<div class="runner-stats">
+<span>🔀 <span id="puzzle-movimientos">0</span></span>
+<span>🏆 <span id="puzzle-record">--</span></span>
+</div>
+<div id="puzzle-tablero" class="puzzle-tablero"></div>
+<p class="runner-estado" id="puzzle-estado" role="status" aria-live="polite">Toca una pieza junto al hueco para moverla y arma al michi.</p>
+<div class="runner-opciones">
+<span class="runner-etiqueta">Elige tu michi</span>
+<div class="runner-fila" id="puzzle-michis"></div>
+<span class="runner-etiqueta">Elige el nivel</span>
+<div class="runner-fila" id="puzzle-niveles"></div>
+</div>
+<div class="atrapa-controles">
+<button type="button" class="btn-accion" id="puzzle-boton">Jugar</button>
 </div>
 </div>
 
@@ -2805,6 +2844,366 @@ initMemory();
 })();
 
 
+</script>
+
+<script>
+/* MICHI PUZZLE
+   - Rompecabezas deslizante (estilo "15 puzzle") con un michi dibujado en canvas (sin imágenes externas: funciona sin internet).
+   - Niveles: Fácil (3x3), Medio (4x4), Difícil (5x5). Más piezas = más difícil.
+   - Se cuenta el número de movimientos; el mejor resultado de cada nivel se guarda en este dispositivo.
+   - El barajado siempre parte de deslizamientos válidos, así que el rompecabezas siempre se puede resolver. */
+(function(){
+    const tablero = document.getElementById("puzzle-tablero");
+    if(!tablero) return;
+
+    const elMovimientos = document.getElementById("puzzle-movimientos");
+    const elRecord = document.getElementById("puzzle-record");
+    const elEstado = document.getElementById("puzzle-estado");
+    const boton = document.getElementById("puzzle-boton");
+    const contMichis = document.getElementById("puzzle-michis");
+    const contNiveles = document.getElementById("puzzle-niveles");
+
+    const CLAVE_MICHI = "michihubPuzzleMichi";
+    const CLAVE_NIVEL = "michihubPuzzleNivel";
+    const CLAVE_RECORD_PREFIJO = "michihubRecordPuzzle_";
+
+    /* ---------- Michis (mismos tonos que Michi Runner, dibujados aparte para este juego) ---------- */
+    const MICHIS = [
+        { id: "naranja", nombre: "Naranja", cuerpo: "#f2a154", raya: "#d9822b", panza: "#fff1de", oreja: "#f7b7a3", ojo: "#2b2b2b" },
+        { id: "gris",    nombre: "Gris",    cuerpo: "#9aa5b1", raya: "#78838f", panza: "#e6ebf0", oreja: "#e8b4bc", ojo: "#2b2b2b" },
+        { id: "negro",   nombre: "Negro",   cuerpo: "#3b3b46", raya: null,      panza: "#55556a", oreja: "#8a6f7a", ojo: "#ffd54a" },
+        { id: "blanco",  nombre: "Blanco",  cuerpo: "#fbf8f4", raya: null,      panza: "#ffffff", oreja: "#f5b5c0", ojo: "#2b2b2b" },
+        { id: "calico",  nombre: "Calicó",  cuerpo: "#fbf8f4", raya: null,      panza: "#ffffff", oreja: "#f5b5c0", ojo: "#2b2b2b", parches: true }
+    ];
+
+    const NIVELES = [
+        { id: "facil",   nombre: "Fácil (3×3)",   n: 3 },
+        { id: "medio",   nombre: "Medio (4×4)",   n: 4 },
+        { id: "dificil", nombre: "Difícil (5×5)", n: 5 }
+    ];
+
+    function leer(clave){
+        try{ return localStorage.getItem(clave); }catch(err){ return null; }
+    }
+    function guardar(clave, valor){
+        try{ localStorage.setItem(clave, String(valor)); }catch(err){ /* sin almacenamiento */ }
+    }
+
+    let michiSel = leer(CLAVE_MICHI);
+    let nivelSel = leer(CLAVE_NIVEL);
+    if(!MICHIS.some((m) => m.id === michiSel)) michiSel = MICHIS[0].id;
+    if(!NIVELES.some((n) => n.id === nivelSel)) nivelSel = NIVELES[0].id;
+
+    /* ---------- Dibujar al michi en un canvas (imagen base del rompecabezas) ---------- */
+    function dibujarMichi(michi, tam){
+        const c = document.createElement("canvas");
+        c.width = tam;
+        c.height = tam;
+        const ctx = c.getContext("2d");
+
+        // Fondo suave
+        ctx.fillStyle = "#fdf6ec";
+        ctx.fillRect(0, 0, tam, tam);
+
+        const cx = tam / 2, cy = tam / 2 + tam * 0.06;
+        const r = tam * 0.32;
+
+        // Cola
+        ctx.strokeStyle = michi.cuerpo;
+        ctx.lineWidth = tam * 0.07;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(cx + r * 0.9, cy + r * 0.6);
+        ctx.quadraticCurveTo(cx + r * 1.9, cy + r * 0.3, cx + r * 1.6, cy - r * 0.7);
+        ctx.stroke();
+
+        // Orejas
+        ctx.fillStyle = michi.cuerpo;
+        ctx.beginPath();
+        ctx.moveTo(cx - r * 0.75, cy - r * 0.55);
+        ctx.lineTo(cx - r * 1.05, cy - r * 1.5);
+        ctx.lineTo(cx - r * 0.15, cy - r * 0.95);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(cx + r * 0.75, cy - r * 0.55);
+        ctx.lineTo(cx + r * 1.05, cy - r * 1.5);
+        ctx.lineTo(cx + r * 0.15, cy - r * 0.95);
+        ctx.closePath();
+        ctx.fill();
+
+        // Interior orejas
+        ctx.fillStyle = michi.oreja;
+        ctx.beginPath();
+        ctx.moveTo(cx - r * 0.62, cy - r * 0.7);
+        ctx.lineTo(cx - r * 0.78, cy - r * 1.18);
+        ctx.lineTo(cx - r * 0.32, cy - r * 0.9);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(cx + r * 0.62, cy - r * 0.7);
+        ctx.lineTo(cx + r * 0.78, cy - r * 1.18);
+        ctx.lineTo(cx + r * 0.32, cy - r * 0.9);
+        ctx.closePath();
+        ctx.fill();
+
+        // Cabeza
+        ctx.fillStyle = michi.cuerpo;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Parches calicó
+        if(michi.parches){
+            ctx.fillStyle = "#f2a154";
+            ctx.beginPath();
+            ctx.arc(cx - r * 0.45, cy - r * 0.5, r * 0.35, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#3b3b46";
+            ctx.beginPath();
+            ctx.arc(cx + r * 0.5, cy + r * 0.2, r * 0.3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Rayas
+        if(michi.raya){
+            ctx.strokeStyle = michi.raya;
+            ctx.lineWidth = tam * 0.018;
+            for(let i = -2; i <= 2; i++){
+                ctx.beginPath();
+                ctx.moveTo(cx + i * r * 0.22, cy - r * 0.75);
+                ctx.lineTo(cx + i * r * 0.32, cy - r * 0.15);
+                ctx.stroke();
+            }
+        }
+
+        // Panza / hocico
+        ctx.fillStyle = michi.panza;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy + r * 0.35, r * 0.55, r * 0.45, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ojos
+        ctx.fillStyle = michi.ojo;
+        ctx.beginPath();
+        ctx.ellipse(cx - r * 0.32, cy - r * 0.08, r * 0.11, r * 0.15, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(cx + r * 0.32, cy - r * 0.08, r * 0.11, r * 0.15, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Brillo en los ojos
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(cx - r * 0.28, cy - r * 0.13, r * 0.035, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx + r * 0.36, cy - r * 0.13, r * 0.035, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Nariz y boca
+        ctx.fillStyle = "#e08a8a";
+        ctx.beginPath();
+        ctx.moveTo(cx - r * 0.06, cy + r * 0.12);
+        ctx.lineTo(cx + r * 0.06, cy + r * 0.12);
+        ctx.lineTo(cx, cy + r * 0.22);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = "#2b2b2b";
+        ctx.lineWidth = tam * 0.012;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy + r * 0.22);
+        ctx.quadraticCurveTo(cx - r * 0.18, cy + r * 0.4, cx - r * 0.35, cy + r * 0.28);
+        ctx.moveTo(cx, cy + r * 0.22);
+        ctx.quadraticCurveTo(cx + r * 0.18, cy + r * 0.4, cx + r * 0.35, cy + r * 0.28);
+        ctx.stroke();
+
+        // Bigotes
+        ctx.strokeStyle = "rgba(60,50,45,0.55)";
+        ctx.lineWidth = tam * 0.008;
+        [-1, 1].forEach((lado) => {
+            for(let i = 0; i < 3; i++){
+                ctx.beginPath();
+                ctx.moveTo(cx + lado * r * 0.4, cy + r * (0.18 + i * 0.08));
+                ctx.lineTo(cx + lado * r * 0.95, cy + r * (0.05 + i * 0.1));
+                ctx.stroke();
+            }
+        });
+
+        return c.toDataURL("image/png");
+    }
+
+    /* ---------- Estado del rompecabezas ---------- */
+    let n = 3;
+    let orden = [];      // orden[posicion] = numeroPiezaOriginal (n*n - 1 es el hueco)
+    let piezasEl = [];
+    let movimientos = 0;
+    let jugando = false;
+    let imagenActual = "";
+
+    function totalPiezas(){ return n * n; }
+    function indiceHueco(){ return orden.indexOf(totalPiezas() - 1); }
+
+    function esResoluble(arr, tam){
+        // Cuenta inversiones ignorando el hueco; para tamaño impar, resoluble si inversiones es par.
+        // Para tamaño par, depende también de la fila del hueco (contada desde abajo).
+        const plano = arr.filter((v) => v !== tam * tam - 1);
+        let inv = 0;
+        for(let i = 0; i < plano.length; i++){
+            for(let j = i + 1; j < plano.length; j++){
+                if(plano[i] > plano[j]) inv++;
+            }
+        }
+        if(tam % 2 === 1){
+            return inv % 2 === 0;
+        }
+        const filaHuecoDesdeAbajo = tam - Math.floor(arr.indexOf(tam * tam - 1) / tam);
+        if(filaHuecoDesdeAbajo % 2 === 0){
+            return inv % 2 === 1;
+        }
+        return inv % 2 === 0;
+    }
+
+    function generarOrdenResoluble(tam){
+        let arr;
+        do{
+            arr = Array.from({ length: tam * tam }, (_, i) => i);
+            for(let i = arr.length - 1; i > 0; i--){
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+        }while(!esResoluble(arr, tam) || estaResuelto(arr));
+        return arr;
+    }
+
+    function estaResuelto(arr){
+        return arr.every((v, i) => v === i);
+    }
+
+    function vecinosValidos(pos, tam){
+        const fila = Math.floor(pos / tam), col = pos % tam;
+        const lista = [];
+        if(fila > 0) lista.push(pos - tam);
+        if(fila < tam - 1) lista.push(pos + tam);
+        if(col > 0) lista.push(pos - 1);
+        if(col < tam - 1) lista.push(pos + 1);
+        return lista;
+    }
+
+    function actualizarRecordUI(){
+        const rec = leer(CLAVE_RECORD_PREFIJO + nivelSel);
+        elRecord.textContent = rec ? rec : "--";
+    }
+
+    function construirTablero(){
+        tablero.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+        tablero.innerHTML = "";
+        piezasEl = [];
+
+        const michi = MICHIS.find((m) => m.id === michiSel);
+        const tamImagen = 480;
+        imagenActual = dibujarMichi(michi, tamImagen);
+
+        for(let i = 0; i < totalPiezas(); i++){
+            const div = document.createElement("div");
+            div.className = "puzzle-pieza";
+            div.addEventListener("click", () => intentarMover(piezasEl.indexOf(div)));
+            tablero.appendChild(div);
+            piezasEl.push(div);
+        }
+        pintarTablero();
+    }
+
+    function pintarTablero(){
+        const huecoValor = totalPiezas() - 1;
+        orden.forEach((valorOriginal, posicion) => {
+            const el = piezasEl[posicion];
+            if(valorOriginal === huecoValor){
+                el.className = "puzzle-pieza puzzle-vacio";
+                el.style.backgroundImage = "none";
+                return;
+            }
+            el.className = "puzzle-pieza";
+            const filaOriginal = Math.floor(valorOriginal / n);
+            const colOriginal = valorOriginal % n;
+            el.style.backgroundImage = `url(${imagenActual})`;
+            el.style.backgroundSize = `${n * 100}% ${n * 100}%`;
+            el.style.backgroundPosition = `${(colOriginal * 100) / (n - 1)}% ${(filaOriginal * 100) / (n - 1)}%`;
+        });
+    }
+
+    function intentarMover(posicion){
+        if(!jugando) return;
+        const hueco = indiceHueco();
+        if(!vecinosValidos(posicion, n).includes(hueco)) return;
+
+        [orden[posicion], orden[hueco]] = [orden[hueco], orden[posicion]];
+        movimientos++;
+        elMovimientos.textContent = movimientos;
+        pintarTablero();
+
+        if(estaResuelto(orden)){
+            jugando = false;
+            const recordActual = parseInt(leer(CLAVE_RECORD_PREFIJO + nivelSel), 10);
+            if(!recordActual || movimientos < recordActual){
+                guardar(CLAVE_RECORD_PREFIJO + nivelSel, movimientos);
+                elEstado.textContent = `¡Nuevo récord! Armaste al michi en ${movimientos} movimientos. 🎉`;
+            }else{
+                elEstado.textContent = `¡Listo! Armaste al michi en ${movimientos} movimientos.`;
+            }
+            actualizarRecordUI();
+            boton.textContent = "Jugar de nuevo";
+        }
+    }
+
+    function iniciarJuego(){
+        n = NIVELES.find((x) => x.id === nivelSel).n;
+        orden = generarOrdenResoluble(n);
+        movimientos = 0;
+        elMovimientos.textContent = "0";
+        jugando = true;
+        elEstado.textContent = "Toca una pieza junto al hueco para moverla y arma al michi.";
+        boton.textContent = "Barajar de nuevo";
+        actualizarRecordUI();
+        construirTablero();
+    }
+
+    /* ---------- Selectores (michi y nivel), igual estilo que Michi Runner ---------- */
+    function crearOpcion(contenedor, texto, activo, alElegir){
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "runner-opcion";
+        btn.setAttribute("aria-pressed", activo ? "true" : "false");
+        btn.textContent = texto;
+        btn.addEventListener("click", () => {
+            contenedor.querySelectorAll(".runner-opcion").forEach((b) => b.setAttribute("aria-pressed", "false"));
+            btn.setAttribute("aria-pressed", "true");
+            alElegir();
+        });
+        contenedor.appendChild(btn);
+        return btn;
+    }
+
+    MICHIS.forEach((m) => {
+        crearOpcion(contMichis, m.nombre, m.id === michiSel, () => {
+            michiSel = m.id;
+            guardar(CLAVE_MICHI, michiSel);
+            if(jugando) construirTablero();
+        });
+    });
+
+    NIVELES.forEach((lvl) => {
+        crearOpcion(contNiveles, lvl.nombre, lvl.id === nivelSel, () => {
+            nivelSel = lvl.id;
+            guardar(CLAVE_NIVEL, nivelSel);
+            actualizarRecordUI();
+        });
+    });
+
+    actualizarRecordUI();
+    boton.addEventListener("click", iniciarJuego);
+})();
 </script>
 
 
