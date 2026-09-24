@@ -322,17 +322,6 @@ main{
     max-width:320px;
     opacity:0.8;
 }
-#welcome-screen button{
-    margin-top:8px;
-    padding:10px 32px;
-    border:none;
-    border-radius:20px;
-    background:var(--accent);
-    color:white;
-    font-weight:bold;
-    font-size:1rem;
-    cursor:pointer;
-}
 
 /* PANTALLA DE INICIO DE SESIÓN OBLIGATORIO */
 #login-gate{
@@ -468,7 +457,6 @@ nav.menu-principal a.activo{
 <img src="icon-192.png" alt="MichiHub">
 <h1>¡Bienvenido a MichiHub!</h1>
 <p id="welcome-frase">Tu rincón lo-fi para relajarte, chatear y jugar.</p>
-<button id="btn-entrar-welcome">Entrar</button>
 </div>
 
 <div id="loading-screen">
@@ -762,23 +750,30 @@ const FRASES_BIENVENIDA = [
     "Puliendo las credenciales ✨"
 ];
 
+const ESPERA_BIENVENIDA_MS = 1800; // tiempo que se ve la bienvenida antes de entrar sola
+let bienvenidaTimeoutId = null;
+let bienvenidaOcultaTimeoutId = null;
+
 function mostrarPantallaBienvenida(){
     let welcome = document.getElementById("welcome-screen");
     if(!welcome) return;
     let frase = document.getElementById("welcome-frase");
     if(frase) frase.innerText = FRASES_BIENVENIDA[Math.floor(Math.random() * FRASES_BIENVENIDA.length)];
+    clearTimeout(bienvenidaTimeoutId);
+    clearTimeout(bienvenidaOcultaTimeoutId);
     welcome.classList.remove("fade-out");
     welcome.style.display = "flex";
+    // Entra automáticamente, sin botón
+    bienvenidaTimeoutId = setTimeout(ocultarPantallaBienvenida, ESPERA_BIENVENIDA_MS);
 }
 
 function ocultarPantallaBienvenida(){
     let welcome = document.getElementById("welcome-screen");
     if(!welcome) return;
     welcome.classList.add("fade-out");
-    setTimeout(() => { welcome.style.display = "none"; }, 400);
+    clearTimeout(bienvenidaOcultaTimeoutId);
+    bienvenidaOcultaTimeoutId = setTimeout(() => { welcome.style.display = "none"; }, 400);
 }
-
-document.getElementById("btn-entrar-welcome").addEventListener("click", ocultarPantallaBienvenida);
 
 // Aparece cada vez que se abre la app (carga inicial y al volver desde segundo plano)
 window.addEventListener("load", mostrarPantallaBienvenida);
@@ -1319,7 +1314,8 @@ async function crearRepoGitHubAutomatico(providerToken, usuarioGH, nombre, fotoU
             },
             body: JSON.stringify({
                 name: nombreRepo,
-                description: "Repositorio creado automáticamente al iniciar sesión en MichiHub",
+                description: "🐾 Tu rincón en MichiHub: bienvenida, certificado de membresía y rango. Creado automáticamente al iniciar sesión. Donde cada michi encuentra su lugar 💙",
+                homepage: "https://cruzangelsaid34.github.io/Michihub/",
                 private: false
             })
         });
