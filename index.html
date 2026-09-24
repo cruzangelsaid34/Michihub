@@ -254,28 +254,50 @@ main{
     height:80px;
     border-radius:18px;
     box-shadow:0 8px 20px var(--shadow);
+    opacity:0;
+    animation:logoEntrada 0.7s ease forwards, logoFlotar 3s ease-in-out infinite 0.7s;
+}
+@keyframes logoEntrada{
+    from{ opacity:0; transform:scale(0.75) translateY(12px); }
+    to{ opacity:1; transform:scale(1) translateY(0); }
+}
+@keyframes logoFlotar{
+    0%,100%{ transform:translateY(0); }
+    50%{ transform:translateY(-8px); }
 }
 #welcome-screen h1{
     font-family:'Playfair Display',serif;
     font-size:2.2rem;
     color:var(--text-main);
+    opacity:0;
+    animation:tituloEntrada 0.6s ease forwards;
+    animation-delay:0.25s;
 }
-#welcome-screen p{
+#welcome-screen .welcome-desc{
     max-width:320px;
-    opacity:0.8;
+    opacity:0;
+    animation:parrafoEntrada 0.6s ease forwards;
+    animation-delay:0.45s;
 }
-#welcome-screen button{
-    margin-top:8px;
-    padding:10px 32px;
-    border:none;
-    border-radius:20px;
-    background:var(--accent);
-    color:white;
-    font-weight:bold;
-    font-size:1rem;
-    cursor:pointer;
+@keyframes tituloEntrada{
+    from{ opacity:0; transform:translateY(14px); }
+    to{ opacity:1; transform:translateY(0); }
 }
-
+@keyframes parrafoEntrada{
+    from{ opacity:0; transform:translateY(14px); }
+    to{ opacity:0.8; transform:translateY(0); }
+}
+.welcome-aviso-lento{
+    max-width:280px;
+    font-size:0.8rem;
+    opacity:0;
+    color:var(--text-main);
+    transition:opacity 0.35s ease;
+    pointer-events:none;
+}
+.welcome-aviso-lento.visible{
+    opacity:0.7;
+}
 /* PANTALLA DE INICIO DE SESIÓN OBLIGATORIO */
 #login-gate{
     position:fixed;
@@ -409,9 +431,18 @@ nav.menu-principal a.activo{
 <div id="welcome-screen">
 <img src="icon-192.png" alt="MichiHub">
 <h1>¡Bienvenido a MichiHub!</h1>
-<p>Tu rincón lo-fi para relajarte, chatear y jugar.</p>
-<button id="btn-entrar-welcome">Entrar</button>
+<p class="welcome-desc">Tu rincón lo-fi para relajarte, chatear y jugar.</p>
+<div class="loading-bar-track"><div class="loading-bar-fill"></div></div>
+<p id="welcome-aviso-lento" class="welcome-aviso-lento">Esto está tardando más de lo normal…</p>
 </div>
+<script>
+// Si ya se mostró la pantalla de bienvenida en esta sesión, se oculta al
+// instante (antes de pintar) para que no vuelva a aparecer al recargar o volver a la pestaña.
+if (sessionStorage.getItem("mh_welcome_shown")) {
+    var ws = document.getElementById("welcome-screen");
+    if (ws) ws.style.display = "none";
+}
+</script>
 
 <div id="loading-screen">
 <h1>MichiHub</h1>
@@ -702,15 +733,97 @@ function ocultarPantallaBienvenida(){
     setTimeout(() => { welcome.style.display = "none"; }, 400);
 }
 
-document.getElementById("btn-entrar-welcome").addEventListener("click", ocultarPantallaBienvenida);
+function actualizarProgresoBienvenida(pct){
+    let fill = document.querySelector("#welcome-screen .loading-bar-fill");
+    if(fill) fill.style.width = Math.min(100, Math.max(0, pct)) + "%";
+}
 
-// Aparece cada vez que se abre la app (carga inicial y al volver desde segundo plano)
-window.addEventListener("load", mostrarPantallaBienvenida);
-window.addEventListener("pageshow", (e) => {
-    if(e.persisted) mostrarPantallaBienvenida();
-});
-document.addEventListener("visibilitychange", () => {
-    if(document.visibilityState === "visible") mostrarPantallaBienvenida();
+function mostrarAvisoLento(){
+    let aviso = document.getElementById("welcome-aviso-lento");
+    if(aviso) aviso.classList.add("visible");
+}
+
+function ocultarAvisoLento(){
+    let aviso = document.getElementById("welcome-aviso-lento");
+    if(aviso) aviso.classList.remove("visible");
+}
+
+// Carga real de los assets clave (íconos, sonido de la radio y fuentes)
+// y reporta el avance real en la barra de progreso.
+function cargarAssetsBienvenida(){
+    const assets = ["icon-192.png", "icon-512.png", "radio-beep.mp3"];
+    let cargados = 0;
+    const total = assets.length + 1; // +1 por las fuentes web
+
+    function marcarProgreso(){
+        cargados++;
+        actualizarProgresoBienvenida((cargados / total) * 100);
+    }
+
+    const promesasAssets = assets.map(src => new Promise(resolve => {
+        if(/\.mp3$/i.test(src)){
+            const audio = new Audio();
+            audio.oncanplaythrough = resolve;
+            audio.onerror = resolve; // no bloquear si un asset falla
+            audio.src = src;
+        } else {
+            const img = new Image();
+            img.onload = resolve;
+            img.onerror = resolve;
+            img.src = src;
+        }
+    }).then(marcarProgreso));
+
+    const promesaFuentes = (document.fonts && document.fonts.ready
+        ? document.fonts.ready
+        : Promise.resolve()
+    ).then(marcarProgreso);
+
+    return Promise.all([...promesasAssets, promesaFuentes]);
+}
+
+// Solo aparece en la primera carga real de la sesión: no vuelve a
+// mostrarse al recargar, volver de segundo plano o cambiar de pestaña.
+// Entra automático cuando termina de cargar (sin botón).
+window.addEventListener("load", () => {
+    if(sessionStorage.getItem("mh_welcome_shown")){
+        let welcome = document.getElementById("welcome-screen");
+        if(welcome) welcome.style.display = "none";
+        return;
+    }
+    sessionStorage.setItem("mh_welcome_shown", "1");
+    mostrarPantallaBienvenida();
+    actualizarProgresoBienvenida(0);
+
+    const inicio = Date.now();
+    const duracionMinima = 900; // ms, para que la barra alcance a verse
+    let yaEntro = false;
+
+    function entrarAhora(){
+        if(yaEntro) return;
+        yaEntro = true;
+        clearTimeout(avisoTimeoutId);
+        clearTimeout(esperaMaximaId);
+        ocultarAvisoLento();
+        ocultarPantallaBienvenida();
+    }
+
+    // Si tarda demasiado, se muestra un aviso (sin bloquear la carga real).
+    const avisoTimeoutId = setTimeout(mostrarAvisoLento, 5000);
+
+    // Tope de seguridad: si algún asset se queda "colgado" (ni carga ni
+    // dispara error), no se deja a la persona atorada en la bienvenida.
+    const esperaMaximaId = setTimeout(() => {
+        actualizarProgresoBienvenida(100);
+        entrarAhora();
+    }, 12000);
+
+    cargarAssetsBienvenida().then(() => {
+        actualizarProgresoBienvenida(100);
+        const transcurrido = Date.now() - inicio;
+        const espera = Math.max(0, duracionMinima - transcurrido);
+        setTimeout(entrarAhora, espera + 200);
+    });
 });
 
 /* PANTALLA DE CARGA */
