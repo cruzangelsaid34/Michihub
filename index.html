@@ -69,10 +69,11 @@ header{
     display:flex;
     gap:10px;
     background:var(--card-bg);
-    padding:10px 20px;
+    padding:8px 16px;
     border-radius:30px;
     box-shadow:0 4px 15px var(--shadow);
     align-items:center;
+    max-width:320px;
 }
 
 .radio-player button{
@@ -82,6 +83,48 @@ header{
     padding:5px 12px;
     border-radius:15px;
     cursor:pointer;
+    flex-shrink:0;
+}
+
+.radio-cover{
+    width:36px;
+    height:36px;
+    border-radius:10px;
+    object-fit:cover;
+    flex-shrink:0;
+    background:var(--bg-base);
+    box-shadow:0 2px 6px var(--shadow);
+}
+
+.radio-meta{
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+    text-align:left;
+    line-height:1.2;
+}
+
+.radio-meta #radio-text{
+    font-size:0.85rem;
+    font-weight:bold;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    max-width:140px;
+}
+
+.radio-meta #radio-artista{
+    font-size:0.72rem;
+    opacity:0.7;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    max-width:140px;
+}
+
+.radio-meta #radio-duracion{
+    font-size:0.68rem;
+    opacity:0.55;
 }
 
 /* MAIN */
@@ -228,6 +271,21 @@ main{
     0%{ transform:translateX(-100%); }
     100%{ transform:translateX(350%); }
 }
+#loading-status{
+    font-size:0.85rem;
+    opacity:0.7;
+    min-height:1.2em;
+    letter-spacing:0.3px;
+}
+.loading-paw{
+    font-size:1.3rem;
+    animation:huella-rebote 1.4s ease-in-out infinite;
+    opacity:0.85;
+}
+@keyframes huella-rebote{
+    0%,100%{ transform:translateY(0) rotate(-8deg); opacity:0.55; }
+    50%{ transform:translateY(-6px) rotate(8deg); opacity:1; }
+}
 
 /* PANTALLA DE BIENVENIDA */
 #welcome-screen{
@@ -254,50 +312,28 @@ main{
     height:80px;
     border-radius:18px;
     box-shadow:0 8px 20px var(--shadow);
-    opacity:0;
-    animation:logoEntrada 0.7s ease forwards, logoFlotar 3s ease-in-out infinite 0.7s;
-}
-@keyframes logoEntrada{
-    from{ opacity:0; transform:scale(0.75) translateY(12px); }
-    to{ opacity:1; transform:scale(1) translateY(0); }
-}
-@keyframes logoFlotar{
-    0%,100%{ transform:translateY(0); }
-    50%{ transform:translateY(-8px); }
 }
 #welcome-screen h1{
     font-family:'Playfair Display',serif;
     font-size:2.2rem;
     color:var(--text-main);
-    opacity:0;
-    animation:tituloEntrada 0.6s ease forwards;
-    animation-delay:0.25s;
 }
-#welcome-screen .welcome-desc{
+#welcome-screen p{
     max-width:320px;
-    opacity:0;
-    animation:parrafoEntrada 0.6s ease forwards;
-    animation-delay:0.45s;
+    opacity:0.8;
 }
-@keyframes tituloEntrada{
-    from{ opacity:0; transform:translateY(14px); }
-    to{ opacity:1; transform:translateY(0); }
+#welcome-screen button{
+    margin-top:8px;
+    padding:10px 32px;
+    border:none;
+    border-radius:20px;
+    background:var(--accent);
+    color:white;
+    font-weight:bold;
+    font-size:1rem;
+    cursor:pointer;
 }
-@keyframes parrafoEntrada{
-    from{ opacity:0; transform:translateY(14px); }
-    to{ opacity:0.8; transform:translateY(0); }
-}
-.welcome-aviso-lento{
-    max-width:280px;
-    font-size:0.8rem;
-    opacity:0;
-    color:var(--text-main);
-    transition:opacity 0.35s ease;
-    pointer-events:none;
-}
-.welcome-aviso-lento.visible{
-    opacity:0.7;
-}
+
 /* PANTALLA DE INICIO DE SESIÓN OBLIGATORIO */
 #login-gate{
     position:fixed;
@@ -431,22 +467,15 @@ nav.menu-principal a.activo{
 <div id="welcome-screen">
 <img src="icon-192.png" alt="MichiHub">
 <h1>¡Bienvenido a MichiHub!</h1>
-<p class="welcome-desc">Tu rincón lo-fi para relajarte, chatear y jugar.</p>
-<div class="loading-bar-track"><div class="loading-bar-fill"></div></div>
-<p id="welcome-aviso-lento" class="welcome-aviso-lento">Esto está tardando más de lo normal…</p>
+<p id="welcome-frase">Tu rincón lo-fi para relajarte, chatear y jugar.</p>
+<button id="btn-entrar-welcome">Entrar</button>
 </div>
-<script>
-// Si ya se mostró la pantalla de bienvenida en esta sesión, se oculta al
-// instante (antes de pintar) para que no vuelva a aparecer al recargar o volver a la pestaña.
-if (sessionStorage.getItem("mh_welcome_shown")) {
-    var ws = document.getElementById("welcome-screen");
-    if (ws) ws.style.display = "none";
-}
-</script>
 
 <div id="loading-screen">
 <h1>MichiHub</h1>
 <div class="loading-bar-track"><div class="loading-bar-fill"></div></div>
+<span class="loading-paw">🐾</span>
+<p id="loading-status">Cargando...</p>
 </div>
 
 <div id="login-gate">
@@ -470,8 +499,8 @@ if (sessionStorage.getItem("mh_welcome_shown")) {
 <p>Disponible de nuevo: <span class="cuenta-hasta" id="cuenta-gate-hasta"></span></p>
 </div>
 
-<audio id="bg-music" loop>
-<source src="https://stream.zeno.fm/f3wvbbqmdg8uv" type="audio/mpeg">
+<audio id="bg-music" loop crossorigin="anonymous">
+<source src="https://stream.zeno.fm/g1eblmkk5dvuv" type="audio/mpeg">
 </audio>
 
 <header>
@@ -481,7 +510,12 @@ if (sessionStorage.getItem("mh_welcome_shown")) {
 </div>
 
 <div class="radio-player">
+<img id="radio-cover" class="radio-cover" src="icon-192.png" alt="Portada">
+<div class="radio-meta">
 <span id="radio-text">Pausado</span>
+<span id="radio-artista">MichiHub Radio</span>
+<span id="radio-duracion"></span>
+</div>
 <button id="radio-btn" onclick="toggleMusic()">▶</button>
 </div>
 
@@ -719,9 +753,20 @@ window.addEventListener("appinstalled", () => {
 });
 
 /* PANTALLA DE BIENVENIDA */
+const FRASES_BIENVENIDA = [
+    "Michis conectando... 🐾",
+    "Calentando el café ☕",
+    "Sintonizando la frecuencia 📻",
+    "Acomodando los cojines del lounge 🛋️",
+    "Despertando a los gatos de la app 😺",
+    "Puliendo las credenciales ✨"
+];
+
 function mostrarPantallaBienvenida(){
     let welcome = document.getElementById("welcome-screen");
     if(!welcome) return;
+    let frase = document.getElementById("welcome-frase");
+    if(frase) frase.innerText = FRASES_BIENVENIDA[Math.floor(Math.random() * FRASES_BIENVENIDA.length)];
     welcome.classList.remove("fade-out");
     welcome.style.display = "flex";
 }
@@ -733,111 +778,50 @@ function ocultarPantallaBienvenida(){
     setTimeout(() => { welcome.style.display = "none"; }, 400);
 }
 
-function actualizarProgresoBienvenida(pct){
-    let fill = document.querySelector("#welcome-screen .loading-bar-fill");
-    if(fill) fill.style.width = Math.min(100, Math.max(0, pct)) + "%";
-}
+document.getElementById("btn-entrar-welcome").addEventListener("click", ocultarPantallaBienvenida);
 
-function mostrarAvisoLento(){
-    let aviso = document.getElementById("welcome-aviso-lento");
-    if(aviso) aviso.classList.add("visible");
-}
-
-function ocultarAvisoLento(){
-    let aviso = document.getElementById("welcome-aviso-lento");
-    if(aviso) aviso.classList.remove("visible");
-}
-
-// Carga real de los assets clave (íconos, sonido de la radio y fuentes)
-// y reporta el avance real en la barra de progreso.
-function cargarAssetsBienvenida(){
-    const assets = ["icon-192.png", "icon-512.png", "radio-beep.mp3"];
-    let cargados = 0;
-    const total = assets.length + 1; // +1 por las fuentes web
-
-    function marcarProgreso(){
-        cargados++;
-        actualizarProgresoBienvenida((cargados / total) * 100);
-    }
-
-    const promesasAssets = assets.map(src => new Promise(resolve => {
-        if(/\.mp3$/i.test(src)){
-            const audio = new Audio();
-            audio.oncanplaythrough = resolve;
-            audio.onerror = resolve; // no bloquear si un asset falla
-            audio.src = src;
-        } else {
-            const img = new Image();
-            img.onload = resolve;
-            img.onerror = resolve;
-            img.src = src;
-        }
-    }).then(marcarProgreso));
-
-    const promesaFuentes = (document.fonts && document.fonts.ready
-        ? document.fonts.ready
-        : Promise.resolve()
-    ).then(marcarProgreso);
-
-    return Promise.all([...promesasAssets, promesaFuentes]);
-}
-
-// Solo aparece en la primera carga real de la sesión: no vuelve a
-// mostrarse al recargar, volver de segundo plano o cambiar de pestaña.
-// Entra automático cuando termina de cargar (sin botón).
-window.addEventListener("load", () => {
-    if(sessionStorage.getItem("mh_welcome_shown")){
-        let welcome = document.getElementById("welcome-screen");
-        if(welcome) welcome.style.display = "none";
-        return;
-    }
-    sessionStorage.setItem("mh_welcome_shown", "1");
-    mostrarPantallaBienvenida();
-    actualizarProgresoBienvenida(0);
-
-    const inicio = Date.now();
-    const duracionMinima = 900; // ms, para que la barra alcance a verse
-    let yaEntro = false;
-
-    function entrarAhora(){
-        if(yaEntro) return;
-        yaEntro = true;
-        clearTimeout(avisoTimeoutId);
-        clearTimeout(esperaMaximaId);
-        ocultarAvisoLento();
-        ocultarPantallaBienvenida();
-    }
-
-    // Si tarda demasiado, se muestra un aviso (sin bloquear la carga real).
-    const avisoTimeoutId = setTimeout(mostrarAvisoLento, 5000);
-
-    // Tope de seguridad: si algún asset se queda "colgado" (ni carga ni
-    // dispara error), no se deja a la persona atorada en la bienvenida.
-    const esperaMaximaId = setTimeout(() => {
-        actualizarProgresoBienvenida(100);
-        entrarAhora();
-    }, 12000);
-
-    cargarAssetsBienvenida().then(() => {
-        actualizarProgresoBienvenida(100);
-        const transcurrido = Date.now() - inicio;
-        const espera = Math.max(0, duracionMinima - transcurrido);
-        setTimeout(entrarAhora, espera + 200);
-    });
+// Aparece cada vez que se abre la app (carga inicial y al volver desde segundo plano)
+window.addEventListener("load", mostrarPantallaBienvenida);
+window.addEventListener("pageshow", (e) => {
+    if(e.persisted) mostrarPantallaBienvenida();
+});
+document.addEventListener("visibilitychange", () => {
+    if(document.visibilityState === "visible") mostrarPantallaBienvenida();
 });
 
 /* PANTALLA DE CARGA */
+const ESTADOS_CARGA = [
+    "Cargando iconos...",
+    "Preparando la radio...",
+    "Afinando el lounge...",
+    "Repartiendo galletitas 🐾",
+    "Encendiendo las luces..."
+];
+
 let loadingTimeoutId = null;
+let loadingStatusIntervalId = null;
 
 function mostrarPantallaCarga(){
     let loading = document.getElementById("loading-screen");
     if(!loading) return;
 
     clearTimeout(loadingTimeoutId);
+    clearInterval(loadingStatusIntervalId);
     loading.classList.remove("fade-out");
+
+    let statusEl = document.getElementById("loading-status");
+    let i = 0;
+    if(statusEl){
+        statusEl.innerText = ESTADOS_CARGA[i];
+        loadingStatusIntervalId = setInterval(() => {
+            i = (i + 1) % ESTADOS_CARGA.length;
+            statusEl.innerText = ESTADOS_CARGA[i];
+        }, 700);
+    }
 
     loadingTimeoutId = setTimeout(() => {
         loading.classList.add("fade-out");
+        clearInterval(loadingStatusIntervalId);
     }, 2200);
 }
 
@@ -858,16 +842,78 @@ document.addEventListener("visibilitychange", () => {
 const music = document.getElementById("bg-music");
 const radioText = document.getElementById("radio-text");
 const radioBtn = document.getElementById("radio-btn");
+const radioArtista = document.getElementById("radio-artista");
+const radioDuracion = document.getElementById("radio-duracion");
+const radioCover = document.getElementById("radio-cover");
+
+let cancionActual = "";
 
 function actualizarUIMusica(reproduciendo){
-    if(reproduciendo){
-        radioText.innerText = "Reproduciendo";
-        radioBtn.innerText = "❚❚";
-    }else{
-        radioText.innerText = "Pausado";
-        radioBtn.innerText = "▶";
+    radioBtn.innerText = reproduciendo ? "❚❚" : "▶";
+    if(!cancionActual){
+        radioText.innerText = reproduciendo ? "Reproduciendo" : "Pausado";
     }
 }
+
+/* METADATA EN VIVO: título/artista vía Zeno.fm, portada y duración vía Deezer */
+function formatearDuracion(segundos){
+    segundos = Math.round(segundos);
+    let m = Math.floor(segundos / 60);
+    let s = String(segundos % 60).padStart(2, "0");
+    return m + ":" + s;
+}
+
+async function buscarPortadaDeezer(artista, titulo){
+    try{
+        let q = encodeURIComponent(artista + " " + titulo);
+        let proxy = "https://api.allorigins.win/raw?url=";
+        let url = proxy + encodeURIComponent("https://api.deezer.com/search?q=" + q + "&limit=1");
+        let res = await fetch(url);
+        let data = await res.json();
+        let track = data && data.data && data.data[0];
+        if(track){
+            radioCover.src = track.album.cover_medium || track.album.cover || "icon-192.png";
+            radioDuracion.innerText = track.duration ? formatearDuracion(track.duration) : "";
+        }
+    }catch(e){
+        // Si falla la búsqueda de portada, se deja el ícono por defecto sin duración
+    }
+}
+
+function iniciarMetadataRadio(){
+    try{
+        const fuenteMetadata = new EventSource("https://api.zeno.fm/mounts/metadata/subscribe/g1eblmkk5dvuv");
+        fuenteMetadata.onmessage = (evento) => {
+            let data = JSON.parse(evento.data);
+            let streamTitle = data.streamTitle || "";
+            if(!streamTitle || streamTitle === cancionActual) return;
+            cancionActual = streamTitle;
+
+            let partes = streamTitle.split(" - ");
+            let artista, titulo;
+            if(partes.length >= 2){
+                artista = partes[0].trim();
+                titulo = partes.slice(1).join(" - ").trim();
+            }else{
+                artista = "MichiHub Radio";
+                titulo = streamTitle.trim();
+            }
+
+            radioText.innerText = titulo;
+            radioArtista.innerText = artista;
+            radioDuracion.innerText = "";
+            radioCover.src = "icon-192.png";
+            buscarPortadaDeezer(artista, titulo);
+        };
+        fuenteMetadata.onerror = () => {
+            // Sin metadata disponible: el reproductor sigue funcionando solo con play/pausa
+        };
+    }catch(e){
+        // EventSource no soportado o falló la conexión; el reproductor sigue funcionando igual
+    }
+}
+
+iniciarMetadataRadio();
 
 function toggleMusic(){
     if(music.paused){
