@@ -229,6 +229,53 @@ main{
     100%{ transform:translateX(350%); }
 }
 
+/* PANTALLA DE BIENVENIDA */
+#welcome-screen{
+    position:fixed;
+    inset:0;
+    background-color:var(--bg-base);
+    background-image:url('https://www.transparenttextures.com/patterns/cream-paper.png');
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:18px;
+    z-index:10000;
+    text-align:center;
+    padding:20px;
+    transition:opacity 0.4s ease;
+}
+#welcome-screen.fade-out{
+    opacity:0;
+    pointer-events:none;
+}
+#welcome-screen img{
+    width:80px;
+    height:80px;
+    border-radius:18px;
+    box-shadow:0 8px 20px var(--shadow);
+}
+#welcome-screen h1{
+    font-family:'Playfair Display',serif;
+    font-size:2.2rem;
+    color:var(--text-main);
+}
+#welcome-screen p{
+    max-width:320px;
+    opacity:0.8;
+}
+#welcome-screen button{
+    margin-top:8px;
+    padding:10px 32px;
+    border:none;
+    border-radius:20px;
+    background:var(--accent);
+    color:white;
+    font-weight:bold;
+    font-size:1rem;
+    cursor:pointer;
+}
+
 /* PANTALLA DE INICIO DE SESIÓN OBLIGATORIO */
 #login-gate{
     position:fixed;
@@ -359,6 +406,13 @@ nav.menu-principal a.activo{
 
 <body>
 
+<div id="welcome-screen">
+<img src="icon-192.png" alt="MichiHub">
+<h1>¡Bienvenido a MichiHub!</h1>
+<p>Tu rincón lo-fi para relajarte, chatear y jugar.</p>
+<button id="btn-entrar-welcome">Entrar</button>
+</div>
+
 <div id="loading-screen">
 <h1>MichiHub</h1>
 <div class="loading-bar-track"><div class="loading-bar-fill"></div></div>
@@ -416,14 +470,20 @@ nav.menu-principal a.activo{
 <main>
 
 <div class="card" id="descarga-app-card" style="text-align:center;">
-<h2 class="card-title">📲 App oficial de MichiHub</h2>
+<h2 class="card-title" style="display:flex;align-items:center;justify-content:center;gap:10px;">
+<img src="icon-192.png" alt="" style="height:1em;width:1em;vertical-align:middle;border-radius:6px;">
+App oficial de MichiHub
+</h2>
 <p style="margin-bottom:14px;opacity:0.85;">
 Instalá la app en tu celular y accedé directo desde tu pantalla de inicio, sin pasar por el navegador.
 </p>
 <p style="margin-bottom:20px;font-size:0.85rem;opacity:0.7;">
 ✅ Firma digital verificada (Google Digital Asset Links) · Publicada por el creador de este sitio · No se descarga desde ninguna tienda de terceros
 </p>
-<a href="MichiHub.apk" download class="btn-descarga" style="display:inline-block;">⬇️ Descargar app (.apk)</a>
+<a href="MichiHub.apk" download class="btn-descarga" style="display:inline-flex;align-items:center;gap:8px;">
+<img src="icon-192.png" alt="" style="height:1em;width:1em;vertical-align:middle;border-radius:4px;">
+Descargar app (.apk)
+</a>
 <p style="margin-top:14px;font-size:0.8rem;opacity:0.65;">
 Android puede mostrar un aviso al instalar apps fuera de Google Play — es normal para apps que no están publicadas ahí. Podés verificar la autenticidad del enlace revisando que estés en <strong>cruzangelsaid34.github.io</strong>.
 </p>
@@ -625,6 +685,32 @@ btnInstalar.addEventListener("click", async () => {
 
 window.addEventListener("appinstalled", () => {
     btnInstalar.style.display = "none";
+});
+
+/* PANTALLA DE BIENVENIDA */
+function mostrarPantallaBienvenida(){
+    let welcome = document.getElementById("welcome-screen");
+    if(!welcome) return;
+    welcome.classList.remove("fade-out");
+    welcome.style.display = "flex";
+}
+
+function ocultarPantallaBienvenida(){
+    let welcome = document.getElementById("welcome-screen");
+    if(!welcome) return;
+    welcome.classList.add("fade-out");
+    setTimeout(() => { welcome.style.display = "none"; }, 400);
+}
+
+document.getElementById("btn-entrar-welcome").addEventListener("click", ocultarPantallaBienvenida);
+
+// Aparece cada vez que se abre la app (carga inicial y al volver desde segundo plano)
+window.addEventListener("load", mostrarPantallaBienvenida);
+window.addEventListener("pageshow", (e) => {
+    if(e.persisted) mostrarPantallaBienvenida();
+});
+document.addEventListener("visibilitychange", () => {
+    if(document.visibilityState === "visible") mostrarPantallaBienvenida();
 });
 
 /* PANTALLA DE CARGA */
