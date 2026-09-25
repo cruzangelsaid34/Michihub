@@ -1,5 +1,5 @@
 /* MichiHub - Service Worker */
-const VERSION = "michihub-v4";
+const VERSION = "michihub-v5";
 const CACHE_PRECARGA = VERSION + "-precarga";
 const CACHE_DINAMICA = VERSION + "-dinamica";
 const ARCHIVOS = ["./", "index.html", "chat.html", "Radio.html", "frecuencia.html", "manifest.json", "offline.js", "icon-192.png", "icon-512.png", "radio-beep.mp3"];
@@ -75,4 +75,37 @@ self.addEventListener("fetch", evento => {
     return;
   }
   if(HOSTS_EXTERNOS_CACHEABLES.includes(url.hostname)) evento.respondWith(rapidoYActualiza(evento, peticion, false));
+});
+
+/* NOTIFICACIONES PUSH
+   El servidor (función de Supabase) envía un payload firmado con la clave VAPID; el navegador
+   lo entrega aquí incluso si MichiHub está cerrado. */
+self.addEventListener("push", evento => {
+  let datos = {};
+  try{
+    datos = evento.data ? evento.data.json() : {};
+  }catch(err){
+    datos = { title: "MichiHub", body: evento.data ? evento.data.text() : "Tienes una notificación nueva" };
+  }
+  const titulo = datos.title || "MichiHub";
+  const opciones = {
+    body: datos.body || "",
+    icon: datos.icon || "icon-192.png",
+    badge: datos.badge || "icon-192.png",
+    vibrate: [100, 50, 100],
+    data: { url: datos.url || "./index.html" }
+  };
+  evento.waitUntil(self.registration.showNotification(titulo, opciones));
+});
+
+self.addEventListener("notificationclick", evento => {
+  evento.notification.close();
+  const destino = (evento.notification.data && evento.notification.data.url) || "./index.html";
+  evento.waitUntil((async () => {
+    const listaClientes = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for(const cliente of listaClientes){
+      if(cliente.url.includes(destino.replace("./", "")) && "focus" in cliente) return cliente.focus();
+    }
+    if(self.clients.openWindow) return self.clients.openWindow(destino);
+  })());
 });
