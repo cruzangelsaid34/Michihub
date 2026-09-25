@@ -310,7 +310,7 @@ main{
 #welcome-screen img{
     width:80px;
     height:80px;
-    border-radius:18px;
+    border-radius:50%;
     box-shadow:0 8px 20px var(--shadow);
 }
 #welcome-screen h1{
@@ -770,41 +770,59 @@ async function guardarSuscripcionPush(suscripcion){
         usuario: usuario,
         correo: correo
     }, { onConflict: "endpoint" });
-    if(error) console.warn("No se pudo guardar la suscripción push:", error);
+    if(error){
+        console.warn("No se pudo guardar la suscripción push:", error);
+        debugPush("ERROR guardando en Supabase: " + JSON.stringify(error));
+    }
+}
+
+/* Antes mostraba una cajita en pantalla; ahora el detalle queda solo en la consola del navegador. */
+function debugPush(msg){
+    console.log("[push]", msg);
 }
 
 async function activarNotificacionesAuto(){
+    debugPush("Iniciando... soporte SW=" + ("serviceWorker" in navigator) + " push=" + ("PushManager" in window));
     if(!("serviceWorker" in navigator) || !("PushManager" in window) || typeof Notification === "undefined") return;
 
     try{
         const registro = await navigator.serviceWorker.ready;
+        debugPush("SW listo. permiso actual=" + Notification.permission);
         let suscripcion = await registro.pushManager.getSubscription();
+        debugPush("Suscripcion existente=" + (suscripcion ? "SI" : "NO"));
 
         if(!suscripcion){
             if(Notification.permission === "granted"){
-                // Ya tenía el permiso concedido de antes pero nunca quedó creada
-                // la suscripción (p. ej. un intento anterior falló a medias).
+                debugPush("Permiso ya concedido, suscribiendo...");
                 suscripcion = await registro.pushManager.subscribe({
                     userVisibleOnly: true,
                     applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
                 });
+                debugPush("Suscripcion creada OK");
             }else if(Notification.permission === "default" && localStorage.getItem("michihubPushPreguntado") !== "true"){
-                // Primera vez en este navegador: se pregunta una sola vez.
                 localStorage.setItem("michihubPushPreguntado", "true");
                 const permiso = await Notification.requestPermission();
+                debugPush("Permiso pedido, resultado=" + permiso);
                 if(permiso === "granted"){
                     suscripcion = await registro.pushManager.subscribe({
                         userVisibleOnly: true,
                         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
                     });
+                    debugPush("Suscripcion creada OK");
                 }
             }else{
-                return; // bloqueado, o ya se preguntó antes y el usuario cerró el popup sin elegir
+                debugPush("No se pide permiso (estado=" + Notification.permission + ")");
+                return;
             }
         }
 
-        if(suscripcion) await guardarSuscripcionPush(suscripcion);
+        if(suscripcion){
+            debugPush("Guardando en Supabase...");
+            await guardarSuscripcionPush(suscripcion);
+            debugPush("Guardado listo (revisa si hubo warning arriba)");
+        }
     }catch(err){
+        debugPush("ERROR: " + (err && err.message ? err.message : err));
         console.warn("No se pudieron activar las notificaciones:", err);
     }
 }
