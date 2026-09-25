@@ -511,10 +511,6 @@ nav.menu-principal a.activo{
 📲 Instalar app
 </button>
 
-<button id="btn-notificaciones" style="display:none;border:none;background:var(--accent);color:white;padding:8px 18px;border-radius:20px;cursor:pointer;font-weight:bold;">
-🔔 Activar notificaciones
-</button>
-
 <span id="link-cerrar-sesion" class="link-recuperar" style="display:none;">Cerrar sesión</span>
 </header>
 
@@ -757,8 +753,6 @@ function urlBase64ToUint8Array(base64String){
     return outputArray;
 }
 
-let btnNotificaciones = document.getElementById("btn-notificaciones");
-
 function datosUsuarioActualPush(){
     return {
         usuario: localStorage.getItem("michihubNombre") || null,
@@ -766,72 +760,51 @@ function datosUsuarioActualPush(){
     };
 }
 
-async function actualizarBotonNotificaciones(){
-    if(!btnNotificaciones) return;
-    if(!("serviceWorker" in navigator) || !("PushManager" in window) || typeof Notification === "undefined"){
-        btnNotificaciones.style.display = "none";
-        return;
-    }
-    btnNotificaciones.style.display = "inline-block";
-    if(Notification.permission === "denied"){
-        btnNotificaciones.textContent = "🔕 Notificaciones bloqueadas";
-        return;
-    }
-    try{
-        const registro = await navigator.serviceWorker.ready;
-        const suscripcion = await registro.pushManager.getSubscription();
-        btnNotificaciones.textContent = suscripcion ? "🔔 Notificaciones activadas" : "🔔 Activar notificaciones";
-    }catch(err){
-        btnNotificaciones.textContent = "🔔 Activar notificaciones";
-    }
+async function guardarSuscripcionPush(suscripcion){
+    const datos = suscripcion.toJSON();
+    const { usuario, correo } = datosUsuarioActualPush();
+    const { error } = await supabaseCuentas.from("suscripciones_push").upsert({
+        endpoint: datos.endpoint,
+        p256dh: datos.keys.p256dh,
+        auth: datos.keys.auth,
+        usuario: usuario,
+        correo: correo
+    }, { onConflict: "endpoint" });
+    if(error) console.warn("No se pudo guardar la suscripción push:", error);
 }
 
-async function activarNotificaciones(){
-    if(!("serviceWorker" in navigator) || !("PushManager" in window)){
-        alert("Este navegador no soporta notificaciones push.");
-        return;
-    }
-    if(Notification.permission === "denied"){
-        alert("Bloqueaste las notificaciones para MichiHub. Habilítalas desde los ajustes del sitio en tu navegador y vuelve a intentarlo.");
-        return;
-    }
+async function activarNotificacionesAuto(){
+    if(!("serviceWorker" in navigator) || !("PushManager" in window) || typeof Notification === "undefined") return;
+
     try{
+        const registro = await navigator.serviceWorker.ready;
+
+        // Si ya hay una suscripción activa, solo la refresca en la base y listo (sin pedir nada).
+        const existente = await registro.pushManager.getSubscription();
+        if(existente){ await guardarSuscripcionPush(existente); return; }
+
+        // Solo pide el permiso automáticamente si nunca se le preguntó a este navegador
+        // (si el usuario ya dijo "no" antes, Notification.permission ya queda en "denied"
+        // y no se le vuelve a molestar).
+        if(Notification.permission !== "default") return;
+        if(localStorage.getItem("michihubPushPreguntado") === "true") return;
+        localStorage.setItem("michihubPushPreguntado", "true");
+
         const permiso = await Notification.requestPermission();
-        if(permiso !== "granted"){ await actualizarBotonNotificaciones(); return; }
+        if(permiso !== "granted") return;
 
-        const registro = await navigator.serviceWorker.ready;
-        let suscripcion = await registro.pushManager.getSubscription();
-        if(!suscripcion){
-            suscripcion = await registro.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-            });
-        }
-
-        const datos = suscripcion.toJSON();
-        const { usuario, correo } = datosUsuarioActualPush();
-
-        const { error } = await supabaseCuentas.from("suscripciones_push").upsert({
-            endpoint: datos.endpoint,
-            p256dh: datos.keys.p256dh,
-            auth: datos.keys.auth,
-            usuario: usuario,
-            correo: correo
-        }, { onConflict: "endpoint" });
-
-        if(error) console.warn("No se pudo guardar la suscripción push:", error);
-
-        await actualizarBotonNotificaciones();
+        const suscripcion = await registro.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+        await guardarSuscripcionPush(suscripcion);
     }catch(err){
-        console.warn("Error activando notificaciones:", err);
-        alert("No se pudieron activar las notificaciones. Intenta de nuevo.");
+        console.warn("No se pudieron activar las notificaciones:", err);
     }
 }
 
-if(btnNotificaciones){
-    btnNotificaciones.addEventListener("click", activarNotificaciones);
-    actualizarBotonNotificaciones();
-}
+// Se pide justo después de que el service worker quede listo, sin ningún botón.
+window.addEventListener("load", () => { setTimeout(activarNotificacionesAuto, 1500); });
 
 /* PANTALLA DE BIENVENIDA */
 const FRASES_BIENVENIDA = [
