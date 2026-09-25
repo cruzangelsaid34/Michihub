@@ -488,7 +488,7 @@ nav.menu-principal a.activo{
 </div>
 
 <audio id="bg-music" loop crossorigin="anonymous">
-<source src="https://stream.zeno.fm/g1eblmkk5dvuv" type="audio/mpeg">
+<source src="https://lofi.stream.laut.fm/lofi" type="audio/mpeg">
 </audio>
 
 <header>
@@ -1313,7 +1313,7 @@ async function subirReadmePersonalizado(providerToken, usuarioGH, nombreRepo, no
         "Si cierras sesión en MichiHub, se elimina automáticamente y se vuelve a crear la próxima vez que entres.\n\n" +
         (hayCertificado ? "---\n\n### 🏅 Tu certificado de membresía\n\n![Certificado de membresía](certificado.png)\n\n" : "") +
         "---\n\n" +
-        "© " + new Date().getFullYear() + " MichiHub. Todos los derechos reservados.\n";
+        "© " + new Date().getFullYear() + " MichiHub™ · Ángel Said Cruz Muñoz. Todos los derechos reservados.\n";
 
     try{
         const resp = await fetch("https://api.github.com/repos/" + usuarioGH + "/" + nombreRepo + "/contents/README.md", {
