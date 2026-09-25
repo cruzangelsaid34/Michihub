@@ -828,7 +828,8 @@ async function activarNotificacionesAuto(){
 }
 
 // Se pide justo después de que el service worker quede listo, sin ningún botón.
-window.addEventListener("load", () => { setTimeout(activarNotificacionesAuto, 1500); });
+// DESACTIVADO: ya no se pide permiso de notificaciones push automáticamente.
+// window.addEventListener("load", () => { setTimeout(activarNotificacionesAuto, 1500); });
 
 /* PANTALLA DE BIENVENIDA */
 const FRASES_BIENVENIDA = [
@@ -933,10 +934,35 @@ const radioCover = document.getElementById("radio-cover");
 
 let cancionActual = "";
 
+/* NOTIFICACIÓN DEL SISTEMA MIENTRAS SUENA LA MÚSICA (Android/Chrome la muestra sola,
+   con controles de play/pausa, incluso si sales de MichiHub o apagas la pantalla). */
+function actualizarMediaSession(titulo, artista, portada){
+    if(!("mediaSession" in navigator)) return;
+    navigator.mediaSession.metadata = new MediaMetadata({
+        title: titulo || "MichiHub Radio",
+        artist: artista || "En vivo",
+        album: "MichiHub",
+        artwork: [
+            { src: portada || "icon-192.png", sizes: "192x192", type: "image/png" },
+            { src: "icon-512.png", sizes: "512x512", type: "image/png" }
+        ]
+    });
+}
+
+if("mediaSession" in navigator){
+    navigator.mediaSession.setActionHandler("play", () => { if(music.paused) toggleMusic(); });
+    navigator.mediaSession.setActionHandler("pause", () => { if(!music.paused) toggleMusic(); });
+    navigator.mediaSession.setActionHandler("stop", () => { if(!music.paused) toggleMusic(); });
+}
+
 function actualizarUIMusica(reproduciendo){
     radioBtn.innerText = reproduciendo ? "❚❚" : "▶";
     if(!cancionActual){
         radioText.innerText = reproduciendo ? "Reproduciendo" : "Pausado";
+        actualizarMediaSession(radioText.innerText, radioArtista.innerText, radioCover.src);
+    }
+    if("mediaSession" in navigator){
+        navigator.mediaSession.playbackState = reproduciendo ? "playing" : "paused";
     }
 }
 
@@ -959,6 +985,7 @@ async function buscarPortadaDeezer(artista, titulo){
         if(track){
             radioCover.src = track.album.cover_medium || track.album.cover || "icon-192.png";
             radioDuracion.innerText = track.duration ? formatearDuracion(track.duration) : "";
+            actualizarMediaSession(titulo, artista, radioCover.src);
         }
     }catch(e){
         // Si falla la búsqueda de portada, se deja el ícono por defecto sin duración
@@ -988,6 +1015,7 @@ function iniciarMetadataRadio(){
             radioArtista.innerText = artista;
             radioDuracion.innerText = "";
             radioCover.src = "icon-192.png";
+            actualizarMediaSession(titulo, artista, radioCover.src);
             buscarPortadaDeezer(artista, titulo);
         };
         fuenteMetadata.onerror = () => {
