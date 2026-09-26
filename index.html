@@ -310,7 +310,8 @@ main{
 #welcome-screen img{
     width:80px;
     height:80px;
-    border-radius:18px;
+    border-radius:50%;
+    clip-path:circle(50%);
     box-shadow:0 8px 20px var(--shadow);
 }
 #welcome-screen h1{
@@ -751,7 +752,7 @@ const FRASES_BIENVENIDA = [
     "Puliendo las credenciales ✨"
 ];
 
-const ESPERA_BIENVENIDA_MS = 1800; // tiempo que se ve la bienvenida antes de entrar sola
+const ESPERA_BIENVENIDA_MS = 3500; // tiempo que se ve la bienvenida antes de entrar sola
 let bienvenidaTimeoutId = null;
 let bienvenidaOcultaTimeoutId = null;
 

@@ -490,65 +490,14 @@ async function descargarFotoConMarca(url, nombreArchivo){
 }
 
 async function descargarVideoConMarca(url, nombreArchivo){
-    const soportado = HTMLVideoElement.prototype.captureStream && typeof MediaRecorder !== "undefined";
-    if(!soportado){
-        const resp = await fetch(url);
-        const blob = await resp.blob();
-        descargarBlobComunidad(blob, nombreArchivo + " (sin marca - tu navegador no lo soporta).mp4");
-        return;
-    }
-
-    const video = document.createElement("video");
-    video.src = url;
-    video.crossOrigin = "anonymous";
-    video.muted = false;
-    video.playsInline = true;
-
-    await new Promise((resolve, reject) => {
-        video.addEventListener("loadedmetadata", resolve, { once: true });
-        video.addEventListener("error", reject, { once: true });
-    });
-
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 360;
-    const ctx = canvas.getContext("2d");
-
-    const streamCanvas = canvas.captureStream(30);
-    let streamFinal = streamCanvas;
-    try{
-        const streamVideo = video.captureStream();
-        const pistaAudio = streamVideo.getAudioTracks()[0];
-        if(pistaAudio) streamFinal = new MediaStream([...streamCanvas.getVideoTracks(), pistaAudio]);
-    }catch(err){
-        console.warn("No se pudo incluir el audio original en la descarga:", err);
-    }
-
-    const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus") ? "video/webm;codecs=vp9,opus" : "video/webm";
-    const chunks = [];
-    const grabadora = new MediaRecorder(streamFinal, { mimeType: mime });
-    grabadora.ondataavailable = (e) => { if(e.data.size) chunks.push(e.data); };
-    const terminado = new Promise((resolve) => { grabadora.onstop = resolve; });
-
-    let dibujando = true;
-    function dibujarCuadro(){
-        if(!dibujando) return;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        dibujarMarcaAguaMichi(ctx, canvas.width, canvas.height);
-        requestAnimationFrame(dibujarCuadro);
-    }
-
-    grabadora.start();
-    await video.play();
-    dibujarCuadro();
-
-    video.addEventListener("ended", () => {
-        dibujando = false;
-        grabadora.stop();
-    }, { once: true });
-
-    await terminado;
-    descargarBlobComunidad(new Blob(chunks, { type: "video/webm" }), nombreArchivo + ".webm");
+    // Nota: se descarga el video original sin marca de agua superpuesta.
+    // Grabar el video de nuevo en el navegador para ponerle el logo encima
+    // no es confiable en celulares (a veces solo lo reproduce y nunca termina
+    // de generar el archivo), así que se optó por una descarga directa y segura.
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    const extension = (blob.type && blob.type.split("/")[1]) || "mp4";
+    descargarBlobComunidad(blob, nombreArchivo + "." + extension);
 }
 
 async function descargarConMarca(url, tipo, nombreBase){
