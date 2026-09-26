@@ -652,7 +652,7 @@ async function publicarEnComunidad(){
     }catch(err){
         console.warn(err);
         estado.textContent = "";
-        alert("No se pudo publicar. Revisa tu conexión, o que la tabla \"publicaciones\" y el bucket \"comunidad\" existan en Supabase.");
+        alert("No se pudo publicar.\n\nDetalle: " + (err && (err.message || err.error_description || JSON.stringify(err))));
     }
 }
 
@@ -839,7 +839,7 @@ document.getElementById("comunidad-input-historia").addEventListener("change", a
         cargarHistorias();
     }catch(err){
         console.warn(err);
-        alert("No se pudo subir la historia. Revisa que la tabla \"historias\" y el bucket \"comunidad\" existan en Supabase.");
+        alert("No se pudo subir la historia.\n\nDetalle: " + (err && (err.message || err.error_description || JSON.stringify(err))));
     }
 });
 
