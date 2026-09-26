@@ -385,65 +385,15 @@ function nombreArchivoSeguro(nombre){
 }
 </script>
 
-<!-- COMUNIDAD: almacenamiento 100% local (sin backend), usando IndexedDB del navegador -->
+<!-- COMUNIDAD: SDK de Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+const SUPABASE_URL = "https://veihvfcnczawoycphhga.supabase.co";
+const SUPABASE_KEY = "sb_publishable_DpvZMjPgjcfxCpK5OTJRHw_ah2emZkb";
+const supabaseCuentas = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const COMUNIDAD_BUCKET = "comunidad";
 const VENTANA_HISTORIA_MS = 24 * 60 * 60 * 1000; // las historias duran 24 horas
-
-function _abrirDBComunidad(){
-    return new Promise((resolve, reject) => {
-        const req = indexedDB.open("michihubComunidad", 1);
-        req.onupgradeneeded = () => {
-            const db = req.result;
-            if(!db.objectStoreNames.contains("publicaciones")) db.createObjectStore("publicaciones", { keyPath: "id" });
-            if(!db.objectStoreNames.contains("historias")) db.createObjectStore("historias", { keyPath: "id" });
-        };
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-    });
-}
-
-function _idLocalComunidad(){
-    return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
-}
-
-function _archivoADataURL(file){
-    return new Promise((resolve, reject) => {
-        const lector = new FileReader();
-        lector.onload = () => resolve(lector.result);
-        lector.onerror = () => reject(lector.error);
-        lector.readAsDataURL(file);
-    });
-}
-
-async function _guardarRegistroLocal(almacen, registro){
-    const db = await _abrirDBComunidad();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(almacen, "readwrite");
-        tx.objectStore(almacen).put(registro);
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-    });
-}
-
-async function _listarRegistrosLocal(almacen){
-    const db = await _abrirDBComunidad();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(almacen, "readonly");
-        const req = tx.objectStore(almacen).getAll();
-        req.onsuccess = () => resolve(req.result || []);
-        req.onerror = () => reject(req.error);
-    });
-}
-
-async function _borrarRegistroLocal(almacen, id){
-    const db = await _abrirDBComunidad();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(almacen, "readwrite");
-        tx.objectStore(almacen).delete(id);
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-    });
-}
 
 function usuarioActualComunidad(){
     if(localStorage.getItem("michihubLogueado") !== "true") return null;
@@ -462,8 +412,18 @@ function tipoDeArchivoComunidad(file){
 }
 
 async function subirArchivoComunidad(file, carpeta){
-    const url = await _archivoADataURL(file);
-    return { url };
+    const extension = (file.name.split(".").pop() || "dat").toLowerCase().replace(/[^a-z0-9]/g, "") || "dat";
+    const ruta = carpeta + "/" + Date.now() + "-" + Math.random().toString(36).slice(2, 8) + "." + extension;
+    const { error } = await supabaseCuentas.storage.from(COMUNIDAD_BUCKET).upload(ruta, file, { upsert: false });
+    if(error) throw error;
+    const { data } = supabaseCuentas.storage.from(COMUNIDAD_BUCKET).getPublicUrl(ruta);
+    return { url: data.publicUrl, ruta };
+}
+
+function rutaDesdeUrlPublica(url){
+    const marcador = "/object/public/" + COMUNIDAD_BUCKET + "/";
+    const i = url.indexOf(marcador);
+    return i === -1 ? null : url.slice(i + marcador.length);
 }
 
 function tiempoRelativoComunidad(iso){
@@ -645,7 +605,9 @@ async function borrarPublicacionComunidad(pub){
     if(!usuario || usuario.correo !== pub.autor_correo){ alert("Solo puedes borrar tus propias publicaciones."); return; }
     if(!confirm("¿Borrar esta publicación?")) return;
     try{
-        await _borrarRegistroLocal("publicaciones", pub.id);
+        const ruta = rutaDesdeUrlPublica(pub.url);
+        if(ruta) await supabaseCuentas.storage.from(COMUNIDAD_BUCKET).remove([ruta]);
+        await supabaseCuentas.from("publicaciones").delete().eq("id", pub.id);
         cargarPublicaciones();
     }catch(err){
         console.warn(err);
@@ -671,16 +633,15 @@ async function publicarEnComunidad(){
     estado.textContent = "Subiendo...";
     try{
         const { url } = await subirArchivoComunidad(archivo, "posts");
-        await _guardarRegistroLocal("publicaciones", {
-            id: _idLocalComunidad(),
+        const { error } = await supabaseCuentas.from("publicaciones").insert({
             autor_nombre: usuario.nombre,
             autor_correo: usuario.correo,
             autor_avatar: usuario.avatar,
             tipo,
             url,
-            descripcion: descripcion || null,
-            creado_en: new Date().toISOString()
+            descripcion: descripcion || null
         });
+        if(error) throw error;
         inputArchivo.value = "";
         inputAudio.value = "";
         document.getElementById("comunidad-descripcion").value = "";
@@ -730,14 +691,17 @@ function renderPublicaciones(lista){
 async function cargarPublicaciones(){
     const contenedor = document.getElementById("comunidad-feed");
     contenedor.innerHTML = "Cargando publicaciones...";
-    try{
-        const data = await _listarRegistrosLocal("publicaciones");
-        data.sort((a, b) => new Date(b.creado_en) - new Date(a.creado_en));
-        renderPublicaciones(data.slice(0, 60));
-    }catch(err){
+    const { data, error } = await supabaseCuentas
+        .from("publicaciones")
+        .select("*")
+        .order("creado_en", { ascending: false })
+        .limit(60);
+    if(error){
         contenedor.innerHTML = "No se pudieron cargar las publicaciones.";
-        console.warn(err);
+        console.warn(error);
+        return;
     }
+    renderPublicaciones(data || []);
 }
 
 document.getElementById("comunidad-feed").addEventListener("click", (e) => {
@@ -782,24 +746,26 @@ function renderHistorias(grupos){
 async function limpiarHistoriasPropiasVencidas(){
     const usuario = usuarioActualComunidad();
     if(!usuario || !usuario.correo) return;
-    const corte = Date.now() - VENTANA_HISTORIA_MS;
-    const todas = await _listarRegistrosLocal("historias");
-    const vencidas = todas.filter((h) => h.autor_correo === usuario.correo && new Date(h.creado_en).getTime() < corte);
-    for(const h of vencidas){
-        await _borrarRegistroLocal("historias", h.id);
+    const corte = new Date(Date.now() - VENTANA_HISTORIA_MS).toISOString();
+    const { data } = await supabaseCuentas.from("historias").select("id,url").eq("autor_correo", usuario.correo).lt("creado_en", corte);
+    if(!data || !data.length) return;
+    for(const h of data){
+        const ruta = rutaDesdeUrlPublica(h.url);
+        if(ruta) await supabaseCuentas.storage.from(COMUNIDAD_BUCKET).remove([ruta]).catch(() => {});
     }
+    await supabaseCuentas.from("historias").delete().lt("creado_en", corte).eq("autor_correo", usuario.correo);
 }
 
 async function cargarHistorias(){
-    const corte = Date.now() - VENTANA_HISTORIA_MS;
+    const corte = new Date(Date.now() - VENTANA_HISTORIA_MS).toISOString();
     await limpiarHistoriasPropiasVencidas();
-    try{
-        const todas = await _listarRegistrosLocal("historias");
-        const vigentes = todas
-            .filter((h) => new Date(h.creado_en).getTime() > corte)
-            .sort((a, b) => new Date(b.creado_en) - new Date(a.creado_en));
-        renderHistorias(agruparHistoriasPorAutor(vigentes));
-    }catch(err){ console.warn(err); }
+    const { data, error } = await supabaseCuentas
+        .from("historias")
+        .select("*")
+        .gt("creado_en", corte)
+        .order("creado_en", { ascending: false });
+    if(error){ console.warn(error); return; }
+    renderHistorias(agruparHistoriasPorAutor(data || []));
 }
 
 function mostrarHistoriaActual(){
@@ -861,15 +827,14 @@ document.getElementById("comunidad-input-historia").addEventListener("change", a
     if(tipo !== "foto" && tipo !== "video"){ alert("Las historias solo aceptan foto o video."); return; }
     try{
         const { url } = await subirArchivoComunidad(file, "historias");
-        await _guardarRegistroLocal("historias", {
-            id: _idLocalComunidad(),
+        const { error } = await supabaseCuentas.from("historias").insert({
             autor_nombre: usuario.nombre,
             autor_correo: usuario.correo,
             autor_avatar: usuario.avatar,
             tipo,
-            url,
-            creado_en: new Date().toISOString()
+            url
         });
+        if(error) throw error;
         cargarHistorias();
     }catch(err){
         console.warn(err);
@@ -881,7 +846,9 @@ document.getElementById("visor-historia-borrar").addEventListener("click", async
     const h = _grupoHistoriaActual[_indiceHistoriaActual];
     if(!h || !confirm("¿Borrar esta historia?")) return;
     try{
-        await _borrarRegistroLocal("historias", h.id);
+        const ruta = rutaDesdeUrlPublica(h.url);
+        if(ruta) await supabaseCuentas.storage.from(COMUNIDAD_BUCKET).remove([ruta]);
+        await supabaseCuentas.from("historias").delete().eq("id", h.id);
         cerrarVisorHistorias();
         cargarHistorias();
     }catch(err){
