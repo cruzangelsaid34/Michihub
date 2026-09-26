@@ -948,16 +948,16 @@ if(!window.supabase || typeof window.supabase.createClient !== "function"){
     window.supabase = { createClient: crearClienteSinConexion };
 }
 
-const SUPABASE_URL = "https://veihvfcnczawoycphhga.supabase.co";
-const SUPABASE_KEY = "sb_publishable_IxRc3zvk4U-CffDnqNzAcQ_4UaoPCp3";
-const supabaseCuentas = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { detectSessionInUrl: false } });
+const SUPABASE_URL = "https://xeongtzcemodcpfdzqws.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhlb25ndHpjZW1vZGNwZmR6cXdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3ODQ4NzksImV4cCI6MjEwNTM2MDg3OX0.CiB3HW5KzRYPvpYS1SwfncSny_sXOvY48nustEsmnLQ";
+const supabaseCuentas = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { detectSessionInUrl: false, storageKey: "michihub-cuentas-auth" } });
 
 /* INICIO DE SESIÓN CON GITHUB
    Se usa un proyecto de Supabase aparte SOLO para autenticar con GitHub.
    El resto de la página sigue funcionando exactamente igual que con Google. */
 const GITHUB_SUPABASE_URL = "https://xeongtzcemodcpfdzqws.supabase.co";
 const GITHUB_SUPABASE_KEY = "sb_publishable_IxRc3zvk4U-CffDnqNzAcQ_4UaoPCp3";
-const supabaseGitHub = window.supabase.createClient(GITHUB_SUPABASE_URL, GITHUB_SUPABASE_KEY);
+const supabaseGitHub = window.supabase.createClient(GITHUB_SUPABASE_URL, GITHUB_SUPABASE_KEY, { auth: { storageKey: "michihub-github-auth" } });
 
 // Consulta el estado de la cuenta en Supabase (por correo de Google). Si el tiempo de restricción ya venció, se trata como activa.
 async function obtenerEstadoCuenta(correo){
