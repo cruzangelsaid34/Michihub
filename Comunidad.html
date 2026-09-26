@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MichiHub | Comunidad</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Playfair+Display:ital@1&display=swap');
+
+:root {
+    --bg-base: #f4f0ea;
+    --text-main: #4a4238;
+    --card-bg: rgba(255, 255, 255, 0.6);
+    --accent: #b09e8d;
+    --shadow: rgba(138, 125, 110, 0.15);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+    background-color:var(--bg-base);
+    background-image:url('https://www.transparenttextures.com/patterns/cream-paper.png');
+    color:var(--text-main);
+    font-family:'Nunito',sans-serif;
+    min-height:100vh;
+    padding:30px 20px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+}
+
+/* HEADER */
+header{
+    width:100%;
+    max-width:600px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    margin-bottom:20px;
+    gap:20px;
+}
+
+.logo-area h1{
+    font-family:'Playfair Display',serif;
+    font-size:2.5rem;
+}
+
+.link-recuperar{display:block;text-align:center;margin-top:12px;font-size:0.85rem;color:var(--text-main);opacity:0.7;text-decoration:underline;cursor:pointer}
+
+/* MENU DE NAVEGACION */
+nav.menu-principal{
+    width:100%;
+    max-width:600px;
+    display:flex;
+    justify-content:center;
+    gap:6px;
+    margin-bottom:20px;
+    flex-wrap:nowrap;
+}
+nav.menu-principal a{
+    text-decoration:none;
+    color:var(--text-main);
+    background:var(--card-bg);
+    padding:6px 4px;
+    border-radius:16px;
+    font-weight:bold;
+    box-shadow:0 4px 10px var(--shadow);
+    font-size:0.68rem;
+    white-space:nowrap;
+    flex:1;
+    text-align:center;
+}
+nav.menu-principal a.activo{
+    background:var(--accent);
+    color:white;
+}
+
+/* MAIN */
+main{
+    width:100%;
+    max-width:600px;
+    display:flex;
+    flex-direction:column;
+    gap:30px;
+}
+
+.card{
+    background:var(--card-bg);
+    border-radius:20px;
+    padding:30px;
+    box-shadow:0 8px 25px var(--shadow);
+    width:100%;
+}
+
+.card-title{
+    font-family:'Playfair Display',serif;
+    margin-bottom:20px;
+}
+
+.btn-accion{padding:8px 20px;border:none;border-radius:20px;background:var(--accent);color:white;cursor:pointer;font-size:0.9rem}
+
+/* PANTALLA DE INICIO DE SESIÓN OBLIGATORIO */
+#login-gate{
+    position:fixed;
+    inset:0;
+    background-color:var(--bg-base);
+    background-image:url('https://www.transparenttextures.com/patterns/cream-paper.png');
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    z-index:9000;
+    text-align:center;
+    padding:20px;
+}
+#login-gate.activo{ display:flex; }
+#login-gate h1{
+    font-family:'Playfair Display',serif;
+    font-size:2.5rem;
+    color:var(--text-main);
+}
+#login-gate p{
+    color:var(--text-main);
+    opacity:0.8;
+    max-width:320px;
+}
+
+#loading-screen{
+    position:fixed;
+    inset:0;
+    background-color:var(--bg-base);
+    background-image:url('https://www.transparenttextures.com/patterns/cream-paper.png');
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    z-index:9999;
+    transition:opacity 0.5s ease;
+}
+#loading-screen.fade-out{
+    opacity:0;
+    pointer-events:none;
+}
+#loading-screen h1{
+    font-family:'Playfair Display',serif;
+    font-size:2.5rem;
+    color:var(--text-main);
+}
+.loading-bar-track{
+    width:200px;
+    height:8px;
+    border-radius:6px;
+    background:rgba(74,66,56,0.15);
+    overflow:hidden;
+}
+.loading-bar-fill{
+    width:40%;
+    height:100%;
+    background:var(--accent);
+    animation:deslizar-carga 1.1s ease-in-out infinite;
+}
+@keyframes deslizar-carga{
+    0%{ transform:translateX(-100%); }
+    100%{ transform:translateX(350%); }
+}
+
+/* COMUNIDAD */
+.comunidad-historias{display:flex;gap:14px;overflow-x:auto;padding:6px 2px 14px;-webkit-overflow-scrolling:touch}
+.historia-burbuja{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;cursor:pointer;flex:0 0 auto;font-size:0.72rem;color:var(--text-main);max-width:66px}
+.historia-avatar{width:56px;height:56px;border-radius:50%;object-fit:cover;border:3px solid var(--accent);background:var(--bg-base)}
+.historia-nueva .historia-avatar{display:flex;align-items:center;justify-content:center;font-size:1.4rem;border-style:dashed}
+.historia-burbuja span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:66px}
+
+.comunidad-composer{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.comunidad-composer textarea{width:100%;padding:10px;border-radius:10px;border:1px solid #ccc;font-family:inherit;resize:vertical;box-sizing:border-box}
+.comunidad-composer-botones{display:flex;flex-wrap:wrap;gap:8px}
+.comunidad-label-archivo{cursor:pointer}
+.comunidad-estado{min-height:1.2em;margin-top:8px;font-size:0.85rem;opacity:0.75}
+
+.comunidad-feed{display:flex;flex-direction:column;gap:18px}
+.comunidad-post{background:var(--card-bg);border-radius:16px;padding:14px;box-shadow:0 3px 10px var(--shadow)}
+.comunidad-post-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.comunidad-avatar{width:38px;height:38px;border-radius:50%;object-fit:cover;background:var(--bg-base)}
+.comunidad-media{width:100%;max-height:480px;object-fit:contain;border-radius:12px;background:#000;display:block;margin-bottom:8px}
+.comunidad-audio{width:100%;margin-bottom:8px}
+.comunidad-caption{margin-bottom:10px;white-space:pre-wrap;word-break:break-word}
+.comunidad-post-acciones{display:flex;gap:8px;flex-wrap:wrap}
+.comunidad-post-acciones button{border:none;background:var(--accent);color:#fff;padding:6px 12px;border-radius:14px;cursor:pointer;font-size:0.82rem}
+
+.visor-historias{display:none;position:fixed;inset:0;background:#000;z-index:9500;flex-direction:column}
+.visor-historias.activo{display:flex}
+.visor-historia-topbar{display:flex;justify-content:space-between;align-items:center;padding:14px;color:#fff}
+.visor-historia-topbar button{border:none;background:rgba(255,255,255,0.2);color:#fff;padding:6px 10px;border-radius:10px;cursor:pointer;margin-left:6px}
+.visor-historia-cuerpo{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.visor-historia-cuerpo img,.visor-historia-cuerpo video{max-width:100%;max-height:100%}
+
+@media (max-width:700px){
+    .comunidad-media{max-height:60vh}
+}
+</style>
+</head>
+
+<body>
+
+<div id="loading-screen">
+<h1>MichiHub</h1>
+<div class="loading-bar-track"><div class="loading-bar-fill"></div></div>
+</div>
+
+<div id="login-gate">
+<h1>MichiHub</h1>
+<p>Inicia sesión con Google para entrar al lounge.</p>
+<div id="g_id_onload"
+     data-client_id="180603573320-02mmvr7iafpop549a33582dpqjkppm83.apps.googleusercontent.com"
+     data-callback="manejarLoginGoogle"
+     data-auto_prompt="false">
+</div>
+<div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="outline"></div>
+</div>
+
+<div id="visor-historias" class="visor-historias">
+<div class="visor-historia-topbar">
+<strong id="visor-historia-nombre"></strong>
+<div>
+<button type="button" id="visor-historia-borrar" class="btn-accion" style="display:none;">🗑️</button>
+<button type="button" id="visor-historia-cerrar" class="btn-accion">✕</button>
+</div>
+</div>
+<div id="visor-historia-cuerpo" class="visor-historia-cuerpo"></div>
+</div>
+
+<audio id="bg-music-sync" loop style="display:none;">
+<source src="https://stream.zeno.fm/f3wvbbqmdg8uv" type="audio/mpeg">
+</audio>
+
+<header>
+<div class="logo-area">
+<h1>MichiHub</h1>
+<p>Comunidad</p>
+</div>
+
+<span id="link-cerrar-sesion" class="link-recuperar" style="display:none;">Cerrar sesión</span>
+</header>
+
+<nav class="menu-principal">
+<a href="index.html">🏠 Inicio</a>
+<a href="chat.html">💬 Chat</a>
+<a href="Radio.html">📻 Radio</a>
+<a href="Comunidad.html" class="activo">📸 Comunidad</a>
+</nav>
+
+<main>
+
+<div class="card" id="seccion-comunidad">
+<h2 class="card-title">📸 Comunidad</h2>
+
+<div class="comunidad-historias" id="comunidad-historias"></div>
+<input type="file" id="comunidad-input-historia" accept="image/*,video/*" style="display:none;">
+
+<div class="comunidad-composer">
+<textarea id="comunidad-descripcion" placeholder="Escribe una descripción (opcional)..." rows="2"></textarea>
+<div class="comunidad-composer-botones">
+<label class="btn-accion comunidad-label-archivo">
+📷🎬 Foto o video
+<input type="file" id="comunidad-archivo" accept="image/*,video/*" style="display:none;">
+</label>
+<label class="btn-accion comunidad-label-archivo">
+🎵 Audio
+<input type="file" id="comunidad-audio" accept="audio/*" style="display:none;">
+</label>
+<button type="button" class="btn-accion" onclick="publicarEnComunidad()">Publicar</button>
+</div>
+<div class="comunidad-estado" id="comunidad-estado-publicar" role="status" aria-live="polite"></div>
+</div>
+
+<div class="comunidad-feed" id="comunidad-feed">Cargando publicaciones...</div>
+</div>
+
+</main>
+
+<script>
+/* Retomar música en segundo plano si estaba sonando en la página anterior */
+(function retomarMusicaSiEstabaSonando(){
+    const musicaSync = document.getElementById("bg-music-sync");
+    if(localStorage.getItem("michihubMusicaEstado") === "reproduciendo"){
+        musicaSync.play().catch(() => {});
+    }
+})();
+
+/* LOGIN CON GOOGLE (igual que en index.html, para mantener la sesión) */
+function decodificarJWT(token){
+    let payload = token.split(".")[1];
+    let json = decodeURIComponent(atob(payload).split("").map(c =>
+        "%" + c.charCodeAt(0).toString(16).padStart(2, "0")
+    ).join(""));
+    return JSON.parse(json);
+}
+
+function manejarLoginGoogle(response){
+    let datosUsuario = decodificarJWT(response.credential);
+    let nombre = datosUsuario.name || datosUsuario.email;
+
+    localStorage.setItem("michihubLogueado", "true");
+    localStorage.setItem("michihubNombre", nombre);
+    localStorage.setItem("michihubEmail", datosUsuario.email || "");
+    localStorage.setItem("michihubFoto", datosUsuario.picture || "");
+
+    document.getElementById("login-gate").classList.remove("activo");
+    document.getElementById("link-cerrar-sesion").style.display = "inline-block";
+    iniciarComunidad();
+}
+
+function cerrarSesion(){
+    localStorage.removeItem("michihubLogueado");
+    localStorage.removeItem("michihubNombre");
+    location.reload();
+}
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("link-cerrar-sesion").addEventListener("click", cerrarSesion);
+});
+
+/* Verifica la sesión al entrar; si no hay login (con Google o GitHub, hecho antes en index.html), bloquea el acceso */
+(function verificarSesionObligatoria(){
+    let logueado = localStorage.getItem("michihubLogueado") === "true";
+    if(!logueado){
+        document.getElementById("login-gate").classList.add("activo");
+    }else{
+        document.getElementById("link-cerrar-sesion").style.display = "inline-block";
+    }
+})();
+
+/* PWA: manifest + ícono + service worker */
+function configurarPWA(){
+    let linkApple = document.createElement("link");
+    linkApple.rel = "apple-touch-icon";
+    linkApple.href = "icon-192.png";
+    document.head.appendChild(linkApple);
+
+    let metaTheme = document.createElement("meta");
+    metaTheme.name = "theme-color";
+    metaTheme.content = "#b09e8d";
+    document.head.appendChild(metaTheme);
+
+    let linkManifest = document.createElement("link");
+    linkManifest.rel = "manifest";
+    linkManifest.href = "manifest.json";
+    document.head.appendChild(linkManifest);
+
+    if("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")){
+        navigator.serviceWorker.register("service-worker.js")
+            .catch(err => console.log("No se pudo registrar el service worker:", err));
+    }
+}
+configurarPWA();
+</script>
+
+<!-- SEGURIDAD: mismas funciones de escape que index.html -->
+<script>
+function escaparHTML(texto){
+    return String(texto == null ? "" : texto)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function urlImagenSegura(valor){
+    if(!valor) return "";
+    const v = String(valor);
+    if(/^data:image\/(png|jpeg|jpg|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(v)) return v;
+    try{
+        const u = new URL(v, location.href);
+        if(u.protocol === "https:" || u.protocol === "http:") return escaparHTML(u.href);
+    }catch(err){}
+    return "";
+}
+
+function nombreArchivoSeguro(nombre){
+    return String(nombre).replace(/[^\wÀ-ÿ .-]/g, "_");
+}
+</script>
+
+<!-- COMUNIDAD: SDK de Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://veihvfcnczawoycphhga.supabase.co";
+const SUPABASE_KEY = "sb_publishable_DpvZMjPgjcfxCpK5OTJRHw_ah2emZkb";
+const supabaseCuentas = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const COMUNIDAD_BUCKET = "comunidad";
+const VENTANA_HISTORIA_MS = 24 * 60 * 60 * 1000; // las historias duran 24 horas
+
+function usuarioActualComunidad(){
+    if(localStorage.getItem("michihubLogueado") !== "true") return null;
+    return {
+        nombre: localStorage.getItem("michihubNombre") || "Michi anónimo",
+        correo: localStorage.getItem("michihubEmail") || "",
+        avatar: localStorage.getItem("michihubFoto") || "icon-192.png"
+    };
+}
+
+function tipoDeArchivoComunidad(file){
+    if(file.type.startsWith("image/")) return "foto";
+    if(file.type.startsWith("video/")) return "video";
+    if(file.type.startsWith("audio/")) return "audio";
+    return null;
+}
+
+async function subirArchivoComunidad(file, carpeta){
+    const extension = (file.name.split(".").pop() || "dat").toLowerCase().replace(/[^a-z0-9]/g, "") || "dat";
+    const ruta = carpeta + "/" + Date.now() + "-" + Math.random().toString(36).slice(2, 8) + "." + extension;
+    const { error } = await supabaseCuentas.storage.from(COMUNIDAD_BUCKET).upload(ruta, file, { upsert: false });
+    if(error) throw error;
+    const { data } = supabaseCuentas.storage.from(COMUNIDAD_BUCKET).getPublicUrl(ruta);
+    return { url: data.publicUrl, ruta };
+}
+
+function rutaDesdeUrlPublica(url){
+    const marcador = "/object/public/" + COMUNIDAD_BUCKET + "/";
+    const i = url.indexOf(marcador);
+    return i === -1 ? null : url.slice(i + marcador.length);
+}
+
+function tiempoRelativoComunidad(iso){
+    const seg = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+    if(seg < 60) return "justo ahora";
+    if(seg < 3600) return Math.floor(seg / 60) + " min";
+    if(seg < 86400) return Math.floor(seg / 3600) + " h";
+    return Math.floor(seg / 86400) + " d";
+}
+
+function descargarBlobComunidad(blob, nombre){
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objUrl;
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(objUrl), 4000);
+}
+
+function dibujarMarcaAguaMichi(ctx, ancho, alto){
+    const alturaBarra = Math.max(46, Math.round(alto * 0.09));
+    const y0 = alto - alturaBarra;
+    const grad = ctx.createLinearGradient(0, y0, 0, alto);
+    grad.addColorStop(0, "rgba(0,0,0,0)");
+    grad.addColorStop(1, "rgba(0,0,0,0.6)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, y0, ancho, alturaBarra);
+
+    const tamPaw = Math.round(alturaBarra * 0.55);
+    ctx.textBaseline = "middle";
+    ctx.font = tamPaw + "px sans-serif";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("🐾", 14, alto - alturaBarra / 2);
+
+    const tamTitulo = Math.max(12, Math.round(alturaBarra * 0.30));
+    ctx.font = "bold " + tamTitulo + "px sans-serif";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("MichiHub", 14 + tamPaw + 8, alto - alturaBarra / 2 - tamTitulo * 0.5);
+
+    const tamTexto = Math.max(10, Math.round(tamTitulo * 0.8));
+    ctx.font = tamTexto + "px sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.fillText("Este contenido viene de MichiHub", 14 + tamPaw + 8, alto - alturaBarra / 2 + tamTitulo * 0.6);
+}
+
+async function descargarFotoConMarca(url, nombreArchivo){
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    const bitmap = await createImageBitmap(blob);
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(bitmap, 0, 0);
+    dibujarMarcaAguaMichi(ctx, canvas.width, canvas.height);
+    await new Promise((resolve) => {
+        canvas.toBlob((blobFinal) => {
+            descargarBlobComunidad(blobFinal, nombreArchivo + ".png");
+            resolve();
+        }, "image/png");
+    });
+}
+
+async function descargarVideoConMarca(url, nombreArchivo){
+    const soportado = HTMLVideoElement.prototype.captureStream && typeof MediaRecorder !== "undefined";
+    if(!soportado){
+        const resp = await fetch(url);
+        const blob = await resp.blob();
+        descargarBlobComunidad(blob, nombreArchivo + " (sin marca - tu navegador no lo soporta).mp4");
+        return;
+    }
+
+    const video = document.createElement("video");
+    video.src = url;
+    video.crossOrigin = "anonymous";
+    video.muted = false;
+    video.playsInline = true;
+
+    await new Promise((resolve, reject) => {
+        video.addEventListener("loadedmetadata", resolve, { once: true });
+        video.addEventListener("error", reject, { once: true });
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 360;
+    const ctx = canvas.getContext("2d");
+
+    const streamCanvas = canvas.captureStream(30);
+    let streamFinal = streamCanvas;
+    try{
+        const streamVideo = video.captureStream();
+        const pistaAudio = streamVideo.getAudioTracks()[0];
+        if(pistaAudio) streamFinal = new MediaStream([...streamCanvas.getVideoTracks(), pistaAudio]);
+    }catch(err){
+        console.warn("No se pudo incluir el audio original en la descarga:", err);
+    }
+
+    const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus") ? "video/webm;codecs=vp9,opus" : "video/webm";
+    const chunks = [];
+    const grabadora = new MediaRecorder(streamFinal, { mimeType: mime });
+    grabadora.ondataavailable = (e) => { if(e.data.size) chunks.push(e.data); };
+    const terminado = new Promise((resolve) => { grabadora.onstop = resolve; });
+
+    let dibujando = true;
+    function dibujarCuadro(){
+        if(!dibujando) return;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        dibujarMarcaAguaMichi(ctx, canvas.width, canvas.height);
+        requestAnimationFrame(dibujarCuadro);
+    }
+
+    grabadora.start();
+    await video.play();
+    dibujarCuadro();
+
+    video.addEventListener("ended", () => {
+        dibujando = false;
+        grabadora.stop();
+    }, { once: true });
+
+    await terminado;
+    descargarBlobComunidad(new Blob(chunks, { type: "video/webm" }), nombreArchivo + ".webm");
+}
+
+async function descargarConMarca(url, tipo, nombreBase){
+    const nombreArchivo = nombreArchivoSeguro(nombreBase || "michihub");
+    try{
+        if(tipo === "foto"){ await descargarFotoConMarca(url, nombreArchivo); return; }
+        if(tipo === "video"){ await descargarVideoConMarca(url, nombreArchivo); return; }
+        const resp = await fetch(url);
+        const blob = await resp.blob();
+        descargarBlobComunidad(blob, "MichiHub - " + nombreArchivo);
+    }catch(err){
+        console.warn("No se pudo aplicar la marca de agua, se descarga el original:", err);
+        try{
+            const resp = await fetch(url);
+            const blob = await resp.blob();
+            descargarBlobComunidad(blob, nombreArchivo);
+        }catch(err2){
+            alert("No se pudo descargar el archivo.");
+        }
+    }
+}
+
+async function compartirPublicacionComunidad(pub){
+    const texto = (pub.descripcion ? pub.descripcion + " — " : "") + "Compartido desde MichiHub 🐾";
+    try{
+        if(navigator.canShare){
+            const resp = await fetch(pub.url);
+            const blob = await resp.blob();
+            const ext = pub.tipo === "foto" ? "jpg" : (pub.tipo === "video" ? "mp4" : "mp3");
+            const archivo = new File([blob], "michihub." + ext, { type: blob.type });
+            if(navigator.canShare({ files: [archivo] })){
+                await navigator.share({ files: [archivo], text: texto });
+                return;
+            }
+        }
+        if(navigator.share){
+            await navigator.share({ text: texto, url: pub.url });
+            return;
+        }
+        await navigator.clipboard.writeText(pub.url);
+        alert("Enlace copiado al portapapeles.");
+    }catch(err){
+        if(err && err.name === "AbortError") return;
+        console.warn(err);
+        try{
+            await navigator.clipboard.writeText(pub.url);
+            alert("Enlace copiado al portapapeles.");
+        }catch(err2){ alert("No se pudo compartir."); }
+    }
+}
+
+async function borrarPublicacionComunidad(pub){
+    const usuario = usuarioActualComunidad();
+    if(!usuario || usuario.correo !== pub.autor_correo){ alert("Solo puedes borrar tus propias publicaciones."); return; }
+    if(!confirm("¿Borrar esta publicación?")) return;
+    try{
+        const ruta = rutaDesdeUrlPublica(pub.url);
+        if(ruta) await supabaseCuentas.storage.from(COMUNIDAD_BUCKET).remove([ruta]);
+        await supabaseCuentas.from("publicaciones").delete().eq("id", pub.id);
+        cargarPublicaciones();
+    }catch(err){
+        console.warn(err);
+        alert("No se pudo borrar la publicación.");
+    }
+}
+
+async function publicarEnComunidad(){
+    const usuario = usuarioActualComunidad();
+    if(!usuario){ alert("Inicia sesión para publicar."); return; }
+
+    const inputArchivo = document.getElementById("comunidad-archivo");
+    const inputAudio = document.getElementById("comunidad-audio");
+    const descripcion = document.getElementById("comunidad-descripcion").value.trim();
+    const estado = document.getElementById("comunidad-estado-publicar");
+
+    const archivo = (inputArchivo.files && inputArchivo.files[0]) || (inputAudio.files && inputAudio.files[0]);
+    if(!archivo){ alert("Elige una foto, un video o un audio para publicar."); return; }
+
+    const tipo = tipoDeArchivoComunidad(archivo);
+    if(!tipo){ alert("Ese tipo de archivo no es compatible."); return; }
+
+    estado.textContent = "Subiendo...";
+    try{
+        const { url } = await subirArchivoComunidad(archivo, "posts");
+        const { error } = await supabaseCuentas.from("publicaciones").insert({
+            autor_nombre: usuario.nombre,
+            autor_correo: usuario.correo,
+            autor_avatar: usuario.avatar,
+            tipo,
+            url,
+            descripcion: descripcion || null
+        });
+        if(error) throw error;
+        inputArchivo.value = "";
+        inputAudio.value = "";
+        document.getElementById("comunidad-descripcion").value = "";
+        estado.textContent = "¡Publicado!";
+        setTimeout(() => { estado.textContent = ""; }, 2000);
+        cargarPublicaciones();
+    }catch(err){
+        console.warn(err);
+        estado.textContent = "";
+        alert("No se pudo publicar. Revisa tu conexión, o que la tabla \"publicaciones\" y el bucket \"comunidad\" existan en Supabase.");
+    }
+}
+
+let _cachePublicaciones = [];
+
+function renderPublicaciones(lista){
+    _cachePublicaciones = lista;
+    const contenedor = document.getElementById("comunidad-feed");
+    const usuario = usuarioActualComunidad();
+    if(!lista.length){
+        contenedor.innerHTML = '<p style="text-align:center;opacity:0.7;">Todavía no hay publicaciones. ¡Sé el primero!</p>';
+        return;
+    }
+    contenedor.innerHTML = lista.map((pub) => {
+        const esMio = usuario && usuario.correo && usuario.correo === pub.autor_correo;
+        let media;
+        if(pub.tipo === "foto") media = '<img src="' + urlImagenSegura(pub.url) + '" alt="" class="comunidad-media" loading="lazy">';
+        else if(pub.tipo === "video") media = '<video src="' + escaparHTML(pub.url) + '" class="comunidad-media" controls playsinline></video>';
+        else media = '<audio src="' + escaparHTML(pub.url) + '" class="comunidad-audio" controls></audio>';
+
+        return '<div class="comunidad-post">' +
+            '<div class="comunidad-post-header">' +
+                '<img class="comunidad-avatar" src="' + urlImagenSegura(pub.autor_avatar) + '" alt="">' +
+                "<div><strong>" + escaparHTML(pub.autor_nombre) + "</strong><br><small>" + tiempoRelativoComunidad(pub.creado_en) + "</small></div>" +
+            "</div>" +
+            media +
+            (pub.descripcion ? '<p class="comunidad-caption">' + escaparHTML(pub.descripcion) + "</p>" : "") +
+            '<div class="comunidad-post-acciones">' +
+                '<button type="button" data-accion="compartir" data-id="' + pub.id + '">🔗 Compartir</button>' +
+                '<button type="button" data-accion="descargar" data-id="' + pub.id + '">⬇️ Descargar</button>' +
+                (esMio ? '<button type="button" data-accion="borrar" data-id="' + pub.id + '">🗑️ Borrar</button>' : "") +
+            "</div>" +
+        "</div>";
+    }).join("");
+}
+
+async function cargarPublicaciones(){
+    const contenedor = document.getElementById("comunidad-feed");
+    contenedor.innerHTML = "Cargando publicaciones...";
+    const { data, error } = await supabaseCuentas
+        .from("publicaciones")
+        .select("*")
+        .order("creado_en", { ascending: false })
+        .limit(60);
+    if(error){
+        contenedor.innerHTML = "No se pudieron cargar las publicaciones.";
+        console.warn(error);
+        return;
+    }
+    renderPublicaciones(data || []);
+}
+
+document.getElementById("comunidad-feed").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-accion]");
+    if(!btn) return;
+    const pub = _cachePublicaciones.find((p) => String(p.id) === btn.dataset.id);
+    if(!pub) return;
+    if(btn.dataset.accion === "compartir") compartirPublicacionComunidad(pub);
+    if(btn.dataset.accion === "descargar") descargarConMarca(pub.url, pub.tipo, (pub.autor_nombre || "michihub") + "-" + String(pub.id).slice(0, 6));
+    if(btn.dataset.accion === "borrar") borrarPublicacionComunidad(pub);
+});
+
+/* --- Historias (se autoborran a las 24 horas) --- */
+let _cacheHistoriasGrupos = [];
+let _grupoHistoriaActual = [];
+let _indiceHistoriaActual = 0;
+let _temporizadorHistoria = null;
+
+function agruparHistoriasPorAutor(lista){
+    const mapa = new Map();
+    lista.forEach((h) => {
+        if(!mapa.has(h.autor_correo)) mapa.set(h.autor_correo, []);
+        mapa.get(h.autor_correo).push(h);
+    });
+    return Array.from(mapa.values());
+}
+
+function renderHistorias(grupos){
+    _cacheHistoriasGrupos = grupos;
+    const barra = document.getElementById("comunidad-historias");
+    let html = '<button type="button" class="historia-burbuja historia-nueva" id="btn-nueva-historia">' +
+        '<span class="historia-avatar">➕</span><span>Tu historia</span></button>';
+    html += grupos.map((g, i) => {
+        const autor = g[0];
+        return '<button type="button" class="historia-burbuja" data-grupo="' + i + '">' +
+            '<img class="historia-avatar" src="' + urlImagenSegura(autor.autor_avatar) + '" alt="">' +
+            "<span>" + escaparHTML((autor.autor_nombre || "").split(" ")[0]) + "</span></button>";
+    }).join("");
+    barra.innerHTML = html;
+}
+
+async function limpiarHistoriasPropiasVencidas(){
+    const usuario = usuarioActualComunidad();
+    if(!usuario || !usuario.correo) return;
+    const corte = new Date(Date.now() - VENTANA_HISTORIA_MS).toISOString();
+    const { data } = await supabaseCuentas.from("historias").select("id,url").eq("autor_correo", usuario.correo).lt("creado_en", corte);
+    if(!data || !data.length) return;
+    for(const h of data){
+        const ruta = rutaDesdeUrlPublica(h.url);
+        if(ruta) await supabaseCuentas.storage.from(COMUNIDAD_BUCKET).remove([ruta]).catch(() => {});
+    }
+    await supabaseCuentas.from("historias").delete().lt("creado_en", corte).eq("autor_correo", usuario.correo);
+}
+
+async function cargarHistorias(){
+    const corte = new Date(Date.now() - VENTANA_HISTORIA_MS).toISOString();
+    await limpiarHistoriasPropiasVencidas();
+    const { data, error } = await supabaseCuentas
+        .from("historias")
+        .select("*")
+        .gt("creado_en", corte)
+        .order("creado_en", { ascending: false });
+    if(error){ console.warn(error); return; }
+    renderHistorias(agruparHistoriasPorAutor(data || []));
+}
+
+function mostrarHistoriaActual(){
+    clearTimeout(_temporizadorHistoria);
+    const h = _grupoHistoriaActual[_indiceHistoriaActual];
+    const usuario = usuarioActualComunidad();
+    const cuerpo = document.getElementById("visor-historia-cuerpo");
+    const btnBorrar = document.getElementById("visor-historia-borrar");
+    btnBorrar.style.display = (usuario && usuario.correo === h.autor_correo) ? "inline-block" : "none";
+    document.getElementById("visor-historia-nombre").textContent = h.autor_nombre;
+
+    if(h.tipo === "foto"){
+        cuerpo.innerHTML = '<img src="' + urlImagenSegura(h.url) + '" alt="">';
+        _temporizadorHistoria = setTimeout(siguienteHistoria, 6000);
+    }else{
+        cuerpo.innerHTML = '<video src="' + escaparHTML(h.url) + '" autoplay playsinline></video>';
+        cuerpo.querySelector("video").addEventListener("ended", siguienteHistoria, { once: true });
+    }
+}
+
+function siguienteHistoria(){
+    _indiceHistoriaActual++;
+    if(_indiceHistoriaActual >= _grupoHistoriaActual.length){ cerrarVisorHistorias(); return; }
+    mostrarHistoriaActual();
+}
+
+function cerrarVisorHistorias(){
+    clearTimeout(_temporizadorHistoria);
+    document.getElementById("visor-historias").classList.remove("activo");
+    document.getElementById("visor-historia-cuerpo").innerHTML = "";
+}
+
+function abrirVisorHistorias(grupo){
+    _grupoHistoriaActual = grupo;
+    _indiceHistoriaActual = 0;
+    document.getElementById("visor-historias").classList.add("activo");
+    mostrarHistoriaActual();
+}
+
+document.getElementById("comunidad-historias").addEventListener("click", (e) => {
+    if(e.target.closest("#btn-nueva-historia")){
+        const usuario = usuarioActualComunidad();
+        if(!usuario){ alert("Inicia sesión para publicar una historia."); return; }
+        document.getElementById("comunidad-input-historia").click();
+        return;
+    }
+    const btn = e.target.closest("button[data-grupo]");
+    if(!btn) return;
+    abrirVisorHistorias(_cacheHistoriasGrupos[Number(btn.dataset.grupo)]);
+});
+
+document.getElementById("comunidad-input-historia").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if(!file) return;
+    const usuario = usuarioActualComunidad();
+    if(!usuario) return;
+    const tipo = tipoDeArchivoComunidad(file);
+    if(tipo !== "foto" && tipo !== "video"){ alert("Las historias solo aceptan foto o video."); return; }
+    try{
+        const { url } = await subirArchivoComunidad(file, "historias");
+        const { error } = await supabaseCuentas.from("historias").insert({
+            autor_nombre: usuario.nombre,
+            autor_correo: usuario.correo,
+            autor_avatar: usuario.avatar,
+            tipo,
+            url
+        });
+        if(error) throw error;
+        cargarHistorias();
+    }catch(err){
+        console.warn(err);
+        alert("No se pudo subir la historia. Revisa que la tabla \"historias\" y el bucket \"comunidad\" existan en Supabase.");
+    }
+});
+
+document.getElementById("visor-historia-borrar").addEventListener("click", async () => {
+    const h = _grupoHistoriaActual[_indiceHistoriaActual];
+    if(!h || !confirm("¿Borrar esta historia?")) return;
+    try{
+        const ruta = rutaDesdeUrlPublica(h.url);
+        if(ruta) await supabaseCuentas.storage.from(COMUNIDAD_BUCKET).remove([ruta]);
+        await supabaseCuentas.from("historias").delete().eq("id", h.id);
+        cerrarVisorHistorias();
+        cargarHistorias();
+    }catch(err){
+        console.warn(err);
+        alert("No se pudo borrar la historia.");
+    }
+});
+
+document.getElementById("visor-historia-cerrar").addEventListener("click", cerrarVisorHistorias);
+
+let _comunidadCargada = false;
+function iniciarComunidad(){
+    if(_comunidadCargada) return;
+    if(localStorage.getItem("michihubLogueado") !== "true") return;
+    _comunidadCargada = true;
+    cargarHistorias();
+    cargarPublicaciones();
+    setInterval(cargarHistorias, 60000);
+}
+iniciarComunidad();
+</script>
+
+<script>
+/* PANTALLA DE CARGA */
+let loadingTimeoutId = null;
+
+function mostrarPantallaCarga(){
+    let loading = document.getElementById("loading-screen");
+    if(!loading) return;
+
+    clearTimeout(loadingTimeoutId);
+    loading.classList.remove("fade-out");
+
+    loadingTimeoutId = setTimeout(() => {
+        loading.classList.add("fade-out");
+    }, 1400);
+}
+
+window.addEventListener("load", mostrarPantallaCarga);
+window.addEventListener("pageshow", (e) => {
+    if(e.persisted) mostrarPantallaCarga();
+});
+document.addEventListener("visibilitychange", () => {
+    if(document.visibilityState === "visible") mostrarPantallaCarga();
+});
+mostrarPantallaCarga();
+</script>
+
+<script src="offline.js" defer></script>
+</body>
+</html>
